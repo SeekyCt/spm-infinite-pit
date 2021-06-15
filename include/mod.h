@@ -2,7 +2,7 @@
 
 namespace mod {
 
-#define MOD_VERSION "SPM Practice Codes v5 DEV"
+#define MOD_VERSION "SPM Infinite Pit v0 DEV"
 
 extern bool gIsDolphin;
 extern bool gIs4_3;

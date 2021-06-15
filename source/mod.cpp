@@ -15,6 +15,8 @@
 #include "titletextwindow.h"
 #include "xyzwindow.h"
 
+#include "ip_save.h"
+
 #include <types.h>
 #include <spm/camdrv.h>
 #include <spm/charpixlitemwin.h>
@@ -177,8 +179,11 @@ void main()
     evtVarLogPatch();
     evtDebugPatch();
     nandSettingsPatch();
-    GameSaveMenu::pitSavePatch();
+    // GameSaveMenu::pitSavePatch();
     MapSelectMenu::scanEntrances();
+
+    /* Infinite Pit Specific */
+    ipSavePatch();
 }
 
 }

@@ -244,6 +244,7 @@ void GameSaveMenu::close()
     MenuWindow::sCurMenu = new MainMenu();
 }
 
+/*
 void (*nandUpdateSaveReal)(int saveId);
 
 void GameSaveMenu::pitSavePatch()
@@ -264,5 +265,6 @@ void GameSaveMenu::pitSavePatch()
         }
     );
 }
+*/
 
 }

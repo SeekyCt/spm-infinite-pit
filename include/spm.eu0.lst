@@ -161,6 +161,7 @@
 8014d468:pouchAddHp
 8014d4f8:pouchGetXp
 8014d508:pouchAddXp
+8014d5f8:pouchAddItem
 8014df4c:pouchRemoveItem
 8014eb68:pouchRemoveShopItem
 8014f31c:pouchGetCurPixl
