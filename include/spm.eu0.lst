@@ -93,9 +93,14 @@
 // more
 
 // evt_door.c
+// text
+800e11e0:func_800e11e0
 800e2610:evt_door_set_door_descs
 800e3588:evt_door_set_dokan_descs
 800e4118:evt_door_set_map_door_descs
+800e4308:evt_door_enable_disable_map_door_desc
+// data
+8041a2b0:evt_8041a2b0
 // more
 
 // evt_fade.c
@@ -111,6 +116,17 @@
 800ea984:evt_guide_check_flag0
 // more
 
+// evt_hit.c
+800eb72c:evt_hitobj_attr_onoff
+// more
+
+// evt_map.c
+800edf24:evt_mapobj_flag_onoff
+800edfec:evt_mapobj_flag4_onoff
+800ed6c0:evt_mapobj_trans
+800edb54:evt_mapobj_color
+// more
+
 // evt_mario.c
 800ef4c0:evt_mario_flag8_onoff
 800ef650:evt_mario_key_off
@@ -122,6 +138,7 @@
 // evt_mobj.c
 // text
 800f3608:evt_mobj_delete
+800f5ad8:evt_mobj_zyo
 800f8be8:evt_mobj_blk
 // more
 // data
@@ -134,12 +151,27 @@
 // more
 
 // evt_npc.c
+80106724:evt_npc_entry_from_template
+80107cfc:func_80107cfc
+80107d20:func_80107d20
 8010a910:evt_npc_teleport_effect
 // more
 
 // evt_seq.c
 8010d028:evt_seq_set_seq
 8010d0a0:evt_seq_wait
+// more
+
+// evt_snd.c
+800d2148:evt_snd_bgmon
+800d36f4:func_800d36f4
+// more
+
+// evt_sub.c
+800d37d8:evt_sub_intpl_msec_init
+800d3878:evt_sub_intpl_msec_get_value
+800d4de4:func_800d4de4
+800d74a0:func_800d74a0
 // more
 
 // mario.c
@@ -407,4 +439,42 @@
 
 // machi.c
 80c4abe0:evt_machi_set_elv_descs
+// more
+
+// dan.c
+// text
+80c81eb0:evt_dan_read_data
+80c82188:evt_dan_handle_map_parts
+80c82448:evt_dan_handle_dokans
+80c8269c:evt_dan_handle_doors
+80c82abc:evt_dan_get_door_names
+80c82b24:evt_dan_get_exit_door_name_l
+80c82b5c:evt_dan_get_enemy_info
+80c82d38:func_80c82d38
+80c83240:evt_dan_get_enemy_spawn_pos
+80c8343c:evt_dan_decide_key_enemy
+80c834e8:danCountdownDone
+80c834f8:evt_dan_start_countdown
+80c83528:danCheckKeyInMapBbox
+80c83618:danCheckKeyEnemyInMapBbox
+80c83744:evt_dan_handle_key_failsafe
+80c8387c:evt_dan_handle_chest_room_dokans_and_doors
+80c83928:evt_dan_get_chest_room_item
+80c83990:evt_dan_boss_room_set_door_name
+80c839cc:func_80c839cc
+80c83a3c:wracktailDispCb
+80c83c04:evt_dan_set_wracktail_disp_cb
+80c83c48:func_80c83c48
+80c83c98:screenBlinkDisp
+80c83f28:evt_dan_screen_blink
+80c83f6c:func_80c83f6c
+// data
+80e4fef8:danMapParts
+80e4ff38:danDokanDescs
+80e50038:danMapDoorDescs
+80e50088:dan_lock_interact_evt
+80e50160:dan_lock_open_evt
+80e50198:dan_enemy_room_init_evt
+80e50560:danChestRoomDokanDesc
+80e50580:danChestRoomMapDoorDescs
 // more
