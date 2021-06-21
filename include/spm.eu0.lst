@@ -73,6 +73,19 @@
 803fbc10:itemEventDataTable
 // more
 
+// evt_snd.c
+800d2148:evt_snd_bgmon
+800d36f4:func_800d36f4
+// more
+
+// evt_sub.c
+800d37d8:evt_sub_intpl_msec_init
+800d3878:evt_sub_intpl_msec_get_value
+800d40a4:evt_sub_random
+800d4de4:func_800d4de4
+800d74a0:func_800d74a0
+// more
+
 // evtmgr.c
 800d87e4:evtGetWork
 800d8b88:evtEntry
@@ -138,7 +151,11 @@
 // evt_mobj.c
 // text
 800f3608:evt_mobj_delete
+800f380c:evt_mobj_flag_onoff
 800f5ad8:evt_mobj_zyo
+800f61ac:evt_mobj_thako
+800f6440:evt_mobj_kan
+800f6610:evt_mobj_arrow
 800f8be8:evt_mobj_blk
 // more
 // data
@@ -151,9 +168,20 @@
 // more
 
 // evt_npc.c
+800fe21c:evt_npc_set_position
+80102f5c:evt_npc_entry
+80103054:func_80103054
+80103108:func_80103108
+80104694:func_80104694
+8010368c:evt_npc_flag8_onoff
+801039b8:evt_npc_animflag_onoff
+80104c94:evt_npc_set_property
+80104fac:evt_npc_modify_part
+801059d0:func_801059d0
 80106724:evt_npc_entry_from_template
 80107cfc:func_80107cfc
 80107d20:func_80107d20
+80108194:func_80108194
 8010a910:evt_npc_teleport_effect
 // more
 
@@ -162,17 +190,8 @@
 8010d0a0:evt_seq_wait
 // more
 
-// evt_snd.c
-800d2148:evt_snd_bgmon
-800d36f4:func_800d36f4
-// more
-
-// evt_sub.c
-800d37d8:evt_sub_intpl_msec_init
-800d3878:evt_sub_intpl_msec_get_value
-800d4de4:func_800d4de4
-800d74a0:func_800d74a0
-// more
+// evt_shop.c
+80111d1c:evt_shop_set_defs
 
 // mario.c
 80121f48:marioGetPtr
