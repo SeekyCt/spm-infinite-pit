@@ -157,7 +157,7 @@ static EVT_BEGIN_EDITABLE(ip_dan_chest_room_init_evt)
     USER_FUNC(spm::evt_mobj::evt_mobj_flag_onoff, 1, 0, PTR("box"), 0x40)
     USER_FUNC(spm::evt_mobj::evt_mobj_flag_onoff, 1, 1, PTR("box"), 0x10000)
     USER_FUNC(spm::evt_mobj::evt_mobj_kan, 0, PTR("_kanban"), -280, 0, -158, 0, 0)
-    USER_FUNC(spm::evt_mobj::evt_mobj_kan, 0, PTR("kanban"), -280, 0, FLOAT(-149.8994140625), // check
+    USER_FUNC(spm::evt_mobj::evt_mobj_kan, 0, PTR("kanban"), -280, 0, FLOAT(-149.8994140625),
               PTR(&spm::dan::dan_exit_pipe_sign_interact_evt), 0)
     USER_FUNC(spm::evt_mobj::evt_mobj_flag_onoff, 1, 0, PTR("_kanban"), 0x40)
     USER_FUNC(spm::evt_mobj::evt_mobj_flag_onoff, 1, 0, PTR("kanban"), 0x4040)
