@@ -17,6 +17,7 @@
 #include <spm/memory.h>
 #include <spm/parse.h>
 #include <spm/rel/dan.h>
+#include <wii/OSError.h>
 #include <wii/string.h>
 
 using spm::evtmgr::EvtEntry;
@@ -232,6 +233,19 @@ static EVT_BEGIN_EDITABLE(ip_dan_chest_room_init_evt)
     RETURN()
 EVT_END()
 
+//#define ONE_TIME_TXT_LOAD
+
+#ifdef ONE_TIME_TXT_LOAD
+static char * sDecompPitText;
+static u32 sDecompPitTextSize;
+#endif
+
+// #define CONSTANT_MAP_MASK
+
+#ifdef CONSTANT_MAP_MASK
+static u32 sMapMask = 0;
+#endif
+
 int ip_evt_dan_read_data(EvtEntry * entry, bool isFirstCall)
 {
     (void) entry;
@@ -245,12 +259,16 @@ int ip_evt_dan_read_data(EvtEntry * entry, bool isFirstCall)
         danWp->dungeons = (DanDungeon *) spm::memory::__memAlloc(1, sizeof(spm::dan::DanDungeon[DUNGEON_MAX]));
         wii::string::memset(danWp->dungeons, 0, sizeof(DanDungeon[DUNGEON_MAX]));
     }
-    
+
+#ifdef ONE_TIME_TXT_LOAD
+    spm::parse::parseInit(sDecompPitText, sDecompPitTextSize);
+#else    
     // Prepare pit text to be read
     u32 size = spm::lzss10::lzss10GetDecompSize(pitText); // GCC can't handle lzss10ParseHeader
     char * decompPitText = (char *) spm::memory::__memAlloc(0, size);
     spm::lzss10::lzss10Decompress(pitText, decompPitText);
     spm::parse::parseInit(decompPitText, size);
+#endif
 
     // Add all dungeon entries to work
     while (spm::parse::parsePush("<Dungeon>"))
@@ -266,8 +284,12 @@ int ip_evt_dan_read_data(EvtEntry * entry, bool isFirstCall)
         spm::parse::parseTagGet1("<item>", spm::parse::PARSE_VALUE_TYPE_STRING, itemName);
         danWp->dungeons[no].item = spm::itemdrv::itemTypeNameToId(itemName);
 
+#ifdef CONSTANT_MAP_MASK
+        danWp->dungeons[no].map = sMapMask;
+#else
         // Read map (bitflags for parts of the map to enable and disable in enemy rooms, 0 & unused elsewhere)
         spm::parse::parseTagGet1("<map>", spm::parse::PARSE_VALUE_TYPE_INT, &danWp->dungeons[no].map);
+#endif
 
         // Read doors
         while (spm::parse::parsePush("<door>"))
@@ -297,7 +319,9 @@ int ip_evt_dan_read_data(EvtEntry * entry, bool isFirstCall)
 
     // Free pit text
     spm::parse::parsePop();
+#ifndef ONE_TIME_TXT_LOAD
     spm::memory::__memFree(0, decompPitText);
+#endif
 
     return 2;
 }
@@ -339,6 +363,20 @@ void ipDanPatch()
         spm::mapdata::mapDataPtr(danChestRoomMaps[i])->script = ip_dan_chest_room_init_evt;
 
     writeBranch(spm::dan::evt_dan_read_data, 0, ip_evt_dan_read_data);
+
+#ifdef ONE_TIME_TXT_LOAD
+    sDecompPitTextSize = spm::lzss10::lzss10GetDecompSize(pitText);
+    sDecompPitText = new char[sDecompPitTextSize];
+    spm::lzss10::lzss10Decompress(pitText, sDecompPitText);
+    wii::OSError::OSReport("sDecompPitText: %x\n", sDecompPitText);
+#endif
+
+#ifdef CONSTANT_MAP_MASK
+    wii::OSError::OSReport("sMapMask: %x\n",&sMapMask);
+    writeWord(0x800576f8, 0, NOP);
+    writeWord(0x8079c238, 0, 0);
+#endif
+
 }
 
 }
