@@ -24,6 +24,9 @@
 
 #define ROUND_UP_32(n) (((n) + 0x1f) & ~0x1f)
 
+#define CHECK_ALL_MASK(num, mask) (((num) & (mask)) == (mask))
+#define CHECK_ANY_MASK(num, mask) (((num) & (mask)) != 0)
+
 // evt_get_cur_pixl(&ret)
 EVT_DECLARE_USER_FUNC(evt_get_cur_pixl, 1)
 

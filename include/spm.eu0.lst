@@ -58,6 +58,14 @@
 800677f8:fadeIsFinish
 // more
 
+// hitdrv.c
+8006c4b4:hitGrpFlagOn
+8006c6ac:hitGrpFlagOff
+8006ee2c:hitCheckFilter
+8006ffe4:hitObjGetPos
+800703b0:hitGetMapEntryBbox
+// more
+
 // icondrv.c
 800731b0:iconDispGx
 // more
@@ -73,6 +81,12 @@
 
 // item_event_data.c
 803fbc10:itemEventDataTable
+// more
+
+// mapdrv.c
+8008cf30:mapGrpFlagOn
+8008d2fc:mapGrpFlagOff
+8008e11c:mapGrpFlag4On
 // more
 
 // evt_snd.c

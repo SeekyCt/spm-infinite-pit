@@ -3,6 +3,8 @@
 #include "patch.h"
 
 #include <types.h>
+#include <spm/evtmgr.h>
+#include <spm/evtmgr_cmd.h>
 #include <spm/evt_door.h>
 #include <spm/evt_map.h>
 #include <spm/evt_mobj.h>
@@ -10,14 +12,17 @@
 #include <spm/evt_npc.h>
 #include <spm/evt_snd.h>
 #include <spm/evt_sub.h>
+#include <spm/hitdrv.h>
 #include <spm/itemdrv.h>
 #include <spm/lzss10.h>
 #include <spm/lz_embedded.h>
 #include <spm/mapdata.h>
+#include <spm/mapdrv.h>
 #include <spm/memory.h>
 #include <spm/parse.h>
 #include <spm/rel/dan.h>
 #include <wii/OSError.h>
+#include <wii/stdio.h>
 #include <wii/string.h>
 
 using spm::evtmgr::EvtEntry;
@@ -326,6 +331,122 @@ int ip_evt_dan_read_data(EvtEntry * entry, bool isFirstCall)
     return 2;
 }
 
+int ip_evt_dan_handle_map_parts(EvtEntry * entry, bool isFirstCall)
+{
+    (void) isFirstCall;
+
+    // Get dungeon
+    int no = spm::evtmgr_cmd::evtGetValue(entry, entry->pCurData[0]);
+    DanDungeon * dungeon = danWp->dungeons + no;
+
+    // Turn off all parts by default
+    spm::mapdrv::mapGrpFlagOn(false, "parts", MAPOBJ_FLAG_HIDE);
+    spm::hitdrv::hitGrpFlagOn(false, "A2_parts", HITOBJ_FLAG_DISABLE);
+    spm::mapdrv::mapGrpFlag4On(false, "block", 0x20);
+
+    // Disable parts from map mask
+    for (u32 i = 0; i < DAN_PARTS_COUNT; i++)
+    {
+        if (dungeon->map & (1 << i))
+        {
+            char a2Part[256];
+            spm::mapdrv::mapGrpFlagOff(0, spm::dan::danMapParts[i], 1);
+            wii::stdio::sprintf(a2Part, "A2_%s", spm::dan::danMapParts[i]);
+            spm::hitdrv::hitGrpFlagOff(0, a2Part, 1);
+        }
+    }
+
+    // Handle special parts
+    if (CHECK_ALL_MASK(dungeon->map, 0xC))
+    {
+        spm::mapdrv::mapGrpFlagOff(0, "parts_12_a", MAPOBJ_FLAG_HIDE);
+        spm::mapdrv::mapGrpFlagOn(0, "parts_12_b", MAPOBJ_FLAG_HIDE);
+        spm::mapdrv::mapGrpFlagOn(0, "parts_12_c", MAPOBJ_FLAG_HIDE);
+        spm::hitdrv::hitGrpFlagOff(0, "A2_parts_12_a", HITOBJ_FLAG_DISABLE);
+        spm::hitdrv::hitGrpFlagOn(0, "A2_parts_12_b", HITOBJ_FLAG_DISABLE);
+        spm::hitdrv::hitGrpFlagOn(0, "A2_parts_12_c", HITOBJ_FLAG_DISABLE);
+    }
+    if (CHECK_ALL_MASK(dungeon->map, 0xc0))
+    {
+        spm::mapdrv::mapGrpFlagOff(0, "parts_09_a", MAPOBJ_FLAG_HIDE);
+        spm::mapdrv::mapGrpFlagOn(0, "parts_09_b", MAPOBJ_FLAG_HIDE);
+        spm::mapdrv::mapGrpFlagOn(0, "parts_09_c", MAPOBJ_FLAG_HIDE);
+        spm::hitdrv::hitGrpFlagOff(0, "A2_parts_09_a", HITOBJ_FLAG_DISABLE);
+        spm::hitdrv::hitGrpFlagOn(0, "A2_parts_09_b", HITOBJ_FLAG_DISABLE);
+        spm::hitdrv::hitGrpFlagOn(0, "A2_parts_09_c", HITOBJ_FLAG_DISABLE);
+    }
+    if (CHECK_ALL_MASK(dungeon->map, 0x300))
+    {
+        spm::mapdrv::mapGrpFlagOff(0, "parts_11_a", MAPOBJ_FLAG_HIDE);
+        spm::mapdrv::mapGrpFlagOn(0, "parts_11_b", MAPOBJ_FLAG_HIDE);
+        spm::mapdrv::mapGrpFlagOn(0, "parts_11_c", MAPOBJ_FLAG_HIDE);
+        spm::hitdrv::hitGrpFlagOff(0, "A2_parts_11_a", HITOBJ_FLAG_DISABLE);
+        spm::hitdrv::hitGrpFlagOn(0, "A2_parts_11_b", HITOBJ_FLAG_DISABLE);
+        spm::hitdrv::hitGrpFlagOn(0, "A2_parts_11_c", HITOBJ_FLAG_DISABLE);
+    }
+    if (CHECK_ALL_MASK(dungeon->map, 0x3000))
+    {
+        spm::mapdrv::mapGrpFlagOff(0, "parts_10_a", MAPOBJ_FLAG_HIDE);
+        spm::mapdrv::mapGrpFlagOn(0, "parts_10_b", MAPOBJ_FLAG_HIDE);
+        spm::mapdrv::mapGrpFlagOn(0, "parts_10_c", MAPOBJ_FLAG_HIDE);
+        spm::hitdrv::hitGrpFlagOff(0, "A2_parts_10_a", HITOBJ_FLAG_DISABLE);
+        spm::hitdrv::hitGrpFlagOn(0, "A2_parts_10_b", HITOBJ_FLAG_DISABLE);
+        spm::hitdrv::hitGrpFlagOn(0, "A2_parts_10_c", HITOBJ_FLAG_DISABLE);
+    }
+
+    return 2;
+}
+
+int ip_evt_dan_handle_dokans(EvtEntry * entry, bool isFirstCall)
+{
+    (void) isFirstCall;
+
+    // Get dungeon
+    int no = spm::evtmgr_cmd::evtGetValue(entry, entry->pCurData[0]);
+    DanDungeon * dungeon = danWp->dungeons + no;
+
+    // Turn off all pipes by default
+    spm::mapdrv::mapGrpFlagOn(0, "dokan", MAPOBJ_FLAG_HIDE);
+    spm::hitdrv::hitGrpFlagOn(0, "A2D_dokan", HITOBJ_FLAG_DISABLE);
+    spm::hitdrv::hitGrpFlagOn(0, "A3D_dokan", HITOBJ_FLAG_DISABLE);
+
+    // Turn on enabled pipes
+    if (CHECK_ANY_MASK(dungeon->map, 0x10000)) {
+        spm::mapdrv::mapGrpFlagOff(0, "dokan_01", MAPOBJ_FLAG_HIDE);
+        spm::hitdrv::hitGrpFlagOff(0, "A2D_dokan_01", HITOBJ_FLAG_DISABLE);
+        spm::hitdrv::hitGrpFlagOff(0, "A3D_dokan_01", HITOBJ_FLAG_DISABLE);
+        spm::mapdrv::mapGrpFlagOff(0, "dokan_02", MAPOBJ_FLAG_HIDE);
+        spm::hitdrv::hitGrpFlagOff(0, "A2D_dokan_02", HITOBJ_FLAG_DISABLE);
+        spm::hitdrv::hitGrpFlagOff(0, "A3D_dokan_02", HITOBJ_FLAG_DISABLE);
+    }
+    if (CHECK_ANY_MASK(dungeon->map, 0x20000)) {
+        spm::mapdrv::mapGrpFlagOff(0, "dokan_03", MAPOBJ_FLAG_HIDE);
+        spm::hitdrv::hitGrpFlagOff(0, "A2D_dokan_03", HITOBJ_FLAG_DISABLE);
+        spm::hitdrv::hitGrpFlagOff(0, "A3D_dokan_03", HITOBJ_FLAG_DISABLE);
+        spm::mapdrv::mapGrpFlagOff(0, "dokan_04", MAPOBJ_FLAG_HIDE);
+        spm::hitdrv::hitGrpFlagOff(0, "A2D_dokan_04", HITOBJ_FLAG_DISABLE);
+        spm::hitdrv::hitGrpFlagOff(0, "A3D_dokan_04", HITOBJ_FLAG_DISABLE);
+    }
+    if (CHECK_ANY_MASK(dungeon->map, 0x40000)) {
+        spm::mapdrv::mapGrpFlagOff(0, "dokan_05", MAPOBJ_FLAG_HIDE);
+        spm::hitdrv::hitGrpFlagOff(0, "A2D_dokan_05", HITOBJ_FLAG_DISABLE);
+        spm::hitdrv::hitGrpFlagOff(0, "A3D_dokan_05", HITOBJ_FLAG_DISABLE);
+        spm::mapdrv::mapGrpFlagOff(0, "dokan_06", MAPOBJ_FLAG_HIDE);
+        spm::hitdrv::hitGrpFlagOff(0, "A2D_dokan_06", HITOBJ_FLAG_DISABLE);
+        spm::hitdrv::hitGrpFlagOff(0, "A3D_dokan_06", HITOBJ_FLAG_DISABLE);
+    }
+    if (CHECK_ANY_MASK(dungeon->map, 0x80000)) {
+        spm::mapdrv::mapGrpFlagOff(0, "dokan_07", MAPOBJ_FLAG_HIDE);
+        spm::hitdrv::hitGrpFlagOff(0, "A2D_dokan_07", HITOBJ_FLAG_DISABLE);
+        spm::hitdrv::hitGrpFlagOff(0, "A3D_dokan_07", HITOBJ_FLAG_DISABLE);
+        spm::mapdrv::mapGrpFlagOff(0, "dokan_08", MAPOBJ_FLAG_HIDE);
+        spm::hitdrv::hitGrpFlagOff(0, "A2D_dokan_08", HITOBJ_FLAG_DISABLE);
+        spm::hitdrv::hitGrpFlagOff(0, "A3D_dokan_08", HITOBJ_FLAG_DISABLE);
+    }
+
+    return 2;
+}
+
 static const char * danEnemyRoomMaps[] = {
     // Flipside
     "dan_01",
@@ -363,6 +484,8 @@ void ipDanPatch()
         spm::mapdata::mapDataPtr(danChestRoomMaps[i])->script = ip_dan_chest_room_init_evt;
 
     writeBranch(spm::dan::evt_dan_read_data, 0, ip_evt_dan_read_data);
+    writeBranch(spm::dan::evt_dan_handle_map_parts, 0, ip_evt_dan_handle_map_parts);
+    writeBranch(spm::dan::evt_dan_handle_dokans, 0, ip_evt_dan_handle_dokans);
 
 #ifdef ONE_TIME_TXT_LOAD
     sDecompPitTextSize = spm::lzss10::lzss10GetDecompSize(pitText);
