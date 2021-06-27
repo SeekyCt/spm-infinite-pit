@@ -245,7 +245,7 @@ static char * sDecompPitText;
 static u32 sDecompPitTextSize;
 #endif
 
-// #define CONSTANT_MAP_MASK
+//#define CONSTANT_MAP_MASK
 
 #ifdef CONSTANT_MAP_MASK
 static u32 sMapMask = 0;
@@ -344,7 +344,7 @@ int ip_evt_dan_handle_map_parts(EvtEntry * entry, bool isFirstCall)
     spm::hitdrv::hitGrpFlagOn(false, "A2_parts", HITOBJ_FLAG_DISABLE);
     spm::mapdrv::mapGrpFlag4On(false, "block", 0x20);
 
-    // Disable parts from map mask
+    // Enable parts from map mask
     for (u32 i = 0; i < DAN_PARTS_COUNT; i++)
     {
         if (dungeon->map & (1 << i))
@@ -356,7 +356,7 @@ int ip_evt_dan_handle_map_parts(EvtEntry * entry, bool isFirstCall)
         }
     }
 
-    // Handle special parts
+    // Enable merged parts where possible
     if (CHECK_ALL_MASK(dungeon->map, 0xC))
     {
         spm::mapdrv::mapGrpFlagOff(0, "parts_12_a", MAPOBJ_FLAG_HIDE);
