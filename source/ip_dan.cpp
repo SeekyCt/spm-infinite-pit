@@ -10,8 +10,22 @@
 #include <spm/evt_npc.h>
 #include <spm/evt_snd.h>
 #include <spm/evt_sub.h>
+#include <spm/itemdrv.h>
+#include <spm/lzss10.h>
+#include <spm/lz_embedded.h>
 #include <spm/mapdata.h>
+#include <spm/memory.h>
+#include <spm/parse.h>
 #include <spm/rel/dan.h>
+#include <wii/string.h>
+
+using spm::evtmgr::EvtEntry;
+using spm::dan::DanWork;
+using spm::dan::DanDoor;
+using spm::dan::DanEnemy;
+using spm::dan::DanDungeon;
+using spm::dan::danWp;
+using spm::lz_embedded::pitText;
 
 namespace mod {
 
@@ -218,6 +232,76 @@ static EVT_BEGIN_EDITABLE(ip_dan_chest_room_init_evt)
     RETURN()
 EVT_END()
 
+int ip_evt_dan_read_data(EvtEntry * entry, bool isFirstCall)
+{
+    (void) entry;
+
+    // Allocate work on first run
+    // (check is a relD leftover, this only runs once on retail anyway)
+    if (isFirstCall)
+    {
+        danWp = (DanWork *) spm::memory::__memAlloc(1, sizeof(*danWp));
+        wii::string::memset(danWp, 0, sizeof(*danWp));
+        danWp->dungeons = (DanDungeon *) spm::memory::__memAlloc(1, sizeof(spm::dan::DanDungeon[DUNGEON_MAX]));
+        wii::string::memset(danWp->dungeons, 0, sizeof(DanDungeon[DUNGEON_MAX]));
+    }
+    
+    // Prepare pit text to be read
+    u32 size = spm::lzss10::lzss10GetDecompSize(pitText); // GCC can't handle lzss10ParseHeader
+    char * decompPitText = (char *) spm::memory::__memAlloc(0, size);
+    spm::lzss10::lzss10Decompress(pitText, decompPitText);
+    spm::parse::parseInit(decompPitText, size);
+
+    // Add all dungeon entries to work
+    while (spm::parse::parsePush("<Dungeon>"))
+    {
+        // Read no (dungeon id)
+        int no = 0;
+        int i = 0;
+        spm::parse::parseTagGet1("<no>", spm::parse::PARSE_VALUE_TYPE_INT, &no);
+        // assertf(144, no >= 0 && no < DUNGEON_MAX, "なんか番号がおかしい [%d]", no);
+
+        // Read item id (chest contents in chest rooms, null & unused elsewhere)
+        char itemName[64];
+        spm::parse::parseTagGet1("<item>", spm::parse::PARSE_VALUE_TYPE_STRING, itemName);
+        danWp->dungeons[no].item = spm::itemdrv::itemTypeNameToId(itemName);
+
+        // Read map (bitflags for parts of the map to enable and disable in enemy rooms, 0 & unused elsewhere)
+        spm::parse::parseTagGet1("<map>", spm::parse::PARSE_VALUE_TYPE_INT, &danWp->dungeons[no].map);
+
+        // Read doors
+        while (spm::parse::parsePush("<door>"))
+        {
+            spm::parse::parseTagGet1("<enter>", spm::parse::PARSE_VALUE_TYPE_INT, &danWp->dungeons[no].doors[i].enter);
+            spm::parse::parseTagGet1("<exit>", spm::parse::PARSE_VALUE_TYPE_INT, &danWp->dungeons[no].doors[i].exit);
+            spm::parse::parsePopNext();
+            i++;
+        }
+        danWp->dungeons[no].doorCount = i;
+
+        // Read enemies
+        i = 0;
+        while (spm::parse::parsePush("<enemy>"))
+        {
+            spm::parse::parseTagGet1("<name>", spm::parse::PARSE_VALUE_TYPE_INT, &danWp->dungeons[no].enemies[i].name);
+            spm::parse::parseTagGet1("<num>", spm::parse::PARSE_VALUE_TYPE_INT, &danWp->dungeons[no].enemies[i].num);
+            spm::parse::parseTagGet1("<pos>", spm::parse::PARSE_VALUE_TYPE_INT, &danWp->dungeons[no].enemies[i].pos);
+            spm::parse::parsePopNext();
+            i++;
+        }
+        danWp->dungeons[no].enemyCount = i;
+
+        // Move to next dungeon
+        spm::parse::parsePopNext();
+    }
+
+    // Free pit text
+    spm::parse::parsePop();
+    spm::memory::__memFree(0, decompPitText);
+
+    return 2;
+}
+
 static const char * danEnemyRoomMaps[] = {
     // Flipside
     "dan_01",
@@ -253,6 +337,8 @@ void ipDanPatch()
     
     for (u32 i = 0; i < ARRAY_SIZEOF(danChestRoomMaps); i++)
         spm::mapdata::mapDataPtr(danChestRoomMaps[i])->script = ip_dan_chest_room_init_evt;
+
+    writeBranch(spm::dan::evt_dan_read_data, 0, ip_evt_dan_read_data);
 }
 
 }

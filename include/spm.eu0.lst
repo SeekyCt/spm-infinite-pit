@@ -64,6 +64,8 @@
 
 // itemdrv.c
 80078b3c:itemEntry
+8007bccc:itemTypeNameToId
+// more
 
 // item_data.c
 803f5f98:itemDataTable
@@ -287,6 +289,15 @@
 801a28ac:FontGetMessageWidth
 // more
 
+// parse.c
+801a6e9c:parseInit
+801a6ebc:getTag
+801a6f40:parsePush
+801a70f4:parsePop
+801a710c:parsePopNext
+801a7140:parseGet1Next
+801a7488:parseTagGet1
+
 // romfont.c
 // text
 801a773c:romFontPrintGX
@@ -359,6 +370,10 @@
 8023e9ec:nandGetSaveFiles
 8023edcc:nandUpdateSave
 8023efe0:nandLoadSave
+// more
+
+// lz_embedded.c
+8036afc0:pitText
 // more
 
 // MSL_C.PPCEABI.bare.H.a
@@ -537,3 +552,5 @@
 15fa48:dan_shadoo_defeat_evt?1,5
 15fb4c:dan_70_reward_appear_evt?1,5
 1606c8:dan_start_shadoo_evt?1,5
+// bss
+1548:danWp?1,6
