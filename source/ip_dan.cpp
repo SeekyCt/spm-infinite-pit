@@ -257,6 +257,12 @@ static u32 sDecompPitTextSize;
 static u32 sMapMask = 0;
 #endif
 
+//#define CONSTANT_ENTRY_DOOR
+
+#ifdef CONSTANT_ENTRY_DOOR
+static u32 sEnterDoor = 0;
+#endif
+
 int ip_evt_dan_read_data(EvtEntry * entry, bool isFirstCall)
 {
     (void) entry;
@@ -475,7 +481,11 @@ int ip_evt_dan_handle_doors(EvtEntry * entry, bool isFirstCall)
     room -= 1;
 
     // Store door ids
+#ifdef CONSTANT_ENTRY_DOOR
+    danWp->doorInfo.enter = sEnterDoor;
+#else
     danWp->doorInfo.enter = dungeon->doors[room].enter;
+#endif
     danWp->doorInfo.exit = dungeon->doors[room].exit;
 
     char str[64];
@@ -600,6 +610,10 @@ void ipDanPatch()
     wii::OSError::OSReport("sMapMask: %x\n",&sMapMask);
     writeWord(0x800576f8, 0, NOP);
     writeWord(0x8079c238, 0, 0);
+#endif
+
+#ifdef CONSTANT_ENTRY_DOOR
+    wii::OSError::OSReport("sEnterDoor: %x\n",&sEnterDoor);
 #endif
 
 }
