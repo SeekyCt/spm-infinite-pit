@@ -21,12 +21,15 @@
 #include <spm/mapdrv.h>
 #include <spm/memory.h>
 #include <spm/parse.h>
+#include <spm/seq_title.h>
+#include <spm/system.h>
 #include <spm/rel/dan.h>
 #include <wii/OSError.h>
 #include <wii/stdio.h>
 #include <wii/string.h>
 
 using spm::evtmgr::EvtEntry;
+using spm::evtmgr::EvtScriptCode;
 using spm::dan::DanWork;
 using spm::dan::DanDoor;
 using spm::dan::DanEnemy;
@@ -331,7 +334,7 @@ int ip_evt_dan_read_data(EvtEntry * entry, bool isFirstCall)
     spm::memory::__memFree(0, decompPitText);
 #endif
 
-    return 2;
+    return EVT_RET_CONTINUE;
 }
 
 int ip_evt_dan_handle_map_parts(EvtEntry * entry, bool isFirstCall)
@@ -397,7 +400,7 @@ int ip_evt_dan_handle_map_parts(EvtEntry * entry, bool isFirstCall)
         spm::hitdrv::hitGrpFlagOn(false, "A2_parts_10_c", HITOBJ_FLAG_DISABLE);
     }
 
-    return 2;
+    return EVT_RET_CONTINUE;
 }
 
 int ip_evt_dan_handle_dokans(EvtEntry * entry, bool isFirstCall)
@@ -447,7 +450,102 @@ int ip_evt_dan_handle_dokans(EvtEntry * entry, bool isFirstCall)
         spm::hitdrv::hitGrpFlagOff(false, "A3D_dokan_08", HITOBJ_FLAG_DISABLE);
     }
 
-    return 2;
+    return EVT_RET_CONTINUE;
+}
+
+int ip_evt_dan_handle_doors(EvtEntry * entry, bool isFirstCall)
+{
+    (void) isFirstCall;
+
+    // Get dungeon and room
+    EvtScriptCode * args = entry->pCurData;
+    int no = spm::evtmgr_cmd::evtGetValue(entry, args[0]);
+    int room = spm::evtmgr_cmd::evtGetValue(entry, args[1]);
+    DanDungeon * dungeon = danWp->dungeons + no;
+
+    // Hide all doors by default
+    spm::mapdrv::mapGrpFlagOn(false, "doa", MAPOBJ_FLAG_HIDE);
+
+    // Determine which door definition to use
+    // (room is an internal name from relD debug prints)
+    if (room > dungeon->doorCount)
+        room = 1;
+    if (room == 0)
+        room = (spm::system::rand() % dungeon->doorCount) + 1;
+    room -= 1;
+
+    // Store door ids
+    danWp->doorInfo.enter = dungeon->doors[room].enter;
+    danWp->doorInfo.exit = dungeon->doors[room].exit;
+
+    char str[64];
+
+    // Show enter door & make tangible
+    wii::stdio::sprintf(str, "doa_%02d", danWp->doorInfo.enter);
+    spm::mapdrv::mapGrpFlagOff(false, str, MAPOBJ_FLAG_HIDE);
+    wii::stdio::sprintf(str, "A2_doa_%02d", danWp->doorInfo.enter);
+    spm::hitdrv::hitGrpFlagOff(false, str, HITOBJ_FLAG_DISABLE);
+    wii::stdio::sprintf(str, "A3_doa_%02d", danWp->doorInfo.enter);
+    spm::hitdrv::hitGrpFlagOff(false, str, HITOBJ_FLAG_DISABLE);
+
+    // Show exit door & make tangible
+    wii::stdio::sprintf(str, "doa_%02d", danWp->doorInfo.exit);
+    spm::mapdrv::mapGrpFlagOff(0, str, 1);
+    wii::stdio::sprintf(str, "A2_doa_%02d", danWp->doorInfo.exit);
+    spm::hitdrv::hitGrpFlagOff(0, str, 1);
+    wii::stdio::sprintf(str, "A3_doa_%02d", danWp->doorInfo.exit);
+    spm::hitdrv::hitGrpFlagOff(0, str, 1);
+
+    // Generate names for enter DoorDesc
+    wii::stdio::sprintf(danWp->enterDoorName_l, "doa%d_l", danWp->doorInfo.enter);
+    wii::stdio::sprintf(danWp->enterDoorName_r, "doa%d_r", danWp->doorInfo.enter);
+    wii::stdio::sprintf(danWp->enterDoorHitName2d, "A2_doa_%02d", danWp->doorInfo.enter);
+    wii::stdio::sprintf(danWp->enterDoorHitName3d, "A3_doa_%02d", danWp->doorInfo.enter);
+    wii::stdio::sprintf(danWp->prevMapName, "");
+    wii::stdio::sprintf(danWp->enterDoor_desc0x18, "");
+
+    // Generate names for exit DoorDesc
+    wii::stdio::sprintf(danWp->exitDoorName_l, "doa%d_l", danWp->doorInfo.exit);
+    wii::stdio::sprintf(danWp->exitDoorName_r, "doa%d_r", danWp->doorInfo.exit);
+    wii::stdio::sprintf(danWp->exitDoorHitName2d, "A2_doa_%02d", danWp->doorInfo.exit);
+    wii::stdio::sprintf(danWp->exitDoorHitName3d, "A3_doa_%02d", danWp->doorInfo.exit);
+    wii::stdio::sprintf(danWp->nextMapName, spm::seq_title::getNextDanMapname(no + 1));
+    wii::stdio::sprintf(danWp->exitDoor_desc0x18, "");
+
+    // Fill in enter DoorDesc
+    spm::dan::danMapDoorDescs[0].name = danWp->enterDoorName_l;
+    spm::dan::danMapDoorDescs[0].name_r = danWp->enterDoorName_r;
+    spm::dan::danMapDoorDescs[0].hitName2d = danWp->enterDoorHitName2d;
+    spm::dan::danMapDoorDescs[0].hitName3d = danWp->enterDoorHitName3d;
+    spm::dan::danMapDoorDescs[0].destMapName = danWp->prevMapName;
+    spm::dan::danMapDoorDescs[0].unknown_0x18 = danWp->enterDoor_desc0x18;
+
+    // Fill in exit DoorDesc
+    spm::dan::danMapDoorDescs[1].name = danWp->exitDoorName_l;
+    spm::dan::danMapDoorDescs[1].name_r = danWp->exitDoorName_r;
+    spm::dan::danMapDoorDescs[1].hitName2d = danWp->exitDoorHitName2d;
+    spm::dan::danMapDoorDescs[1].hitName3d = danWp->exitDoorHitName3d;
+    spm::dan::danMapDoorDescs[1].destMapName = danWp->nextMapName;
+    spm::dan::danMapDoorDescs[1].unknown_0x18 = danWp->exitDoor_desc0x18;
+
+    // Output door name
+    wii::stdio::sprintf(danWp->enterDoorName, "doa_%02d", danWp->doorInfo.enter);
+    wii::stdio::sprintf(danWp->exitDoorName, "doa_%02d", danWp->doorInfo.exit);
+    wii::string::strcpy(spm::spmario::gp->doorName, danWp->enterDoorName_l);
+    spm::evtmgr_cmd::evtSetValue(entry, args[2], (s32) danWp->enterDoorName_l);
+    spm::evtmgr_cmd::evtSetValue(entry, args[3], (s32) danWp->exitDoorName_l);
+
+    // Unknown
+    spm::evtmgr_cmd::evtSetValue(entry, GSWF(23), 0);
+
+    // Output lock position
+    wii::Vec3 doorPos;
+    spm::hitdrv::hitObjGetPos(danWp->exitDoorHitName2d, &doorPos);
+    spm::evtmgr_cmd::evtSetFloat(entry, args[4], doorPos.x);
+    spm::evtmgr_cmd::evtSetFloat(entry, args[5], doorPos.y - 40.0f);
+    spm::evtmgr_cmd::evtSetFloat(entry, args[6], doorPos.z);
+
+    return EVT_RET_CONTINUE;
 }
 
 static const char * danEnemyRoomMaps[] = {
@@ -489,6 +587,7 @@ void ipDanPatch()
     writeBranch(spm::dan::evt_dan_read_data, 0, ip_evt_dan_read_data);
     writeBranch(spm::dan::evt_dan_handle_map_parts, 0, ip_evt_dan_handle_map_parts);
     writeBranch(spm::dan::evt_dan_handle_dokans, 0, ip_evt_dan_handle_dokans);
+    writeBranch(spm::dan::evt_dan_handle_doors, 0, ip_evt_dan_handle_doors);
 
 #ifdef ONE_TIME_TXT_LOAD
     sDecompPitTextSize = spm::lzss10::lzss10GetDecompSize(pitText);

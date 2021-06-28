@@ -117,6 +117,7 @@
 800dd534:evt_debug_put_reg
 800de594:evtGetValue
 800de9b8:evtSetValue
+800df1fc:evtSetFloat
 // bss
 8050ce30:evt_debug_put_reg_str
 // more
@@ -247,6 +248,10 @@
 8017af98:_unload
 // more
 
+// seq_title.c
+8017bc4c:getNextDanMapname
+// more
+
 // seq_game.c
 8017ce44:seq_gameInit
 // more
@@ -275,6 +280,7 @@
 // more
 
 // system.c
+8019d150:rand
 8019d254:irand
 8019c54c:__assert2
 // more

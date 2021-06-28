@@ -16,17 +16,28 @@ static_assert(sizeof(DoorDesc) == 0x58);
 
 struct DokanDesc
 {
-    u8 unknown_0x0[0x8 - 0x0];
+    int scriptNumber;
+    u16 flags;
+    u16 _pad_6;
     const char * name;
-    u8 unknown_0xc[0x20 - 0xc];
+    const char * mapName;
+    const char * hitName2d;
+    const char * hitName3d;
+    const char * destMapName;
+    const char * unknown_0x1c;
 };
 static_assert(sizeof(DokanDesc) == 0x20);
 
 struct MapDoorDesc
 {
-    u8 unknown_0x0[0x4 - 0x0];
+    u32 flags;
     const char * name;
-    u8 unknown_0x8[0x20 - 0x8];
+    const char * name_r;
+    const char * hitName2d;
+    const char * hitName3d;
+    const char * destMapName;
+    const char * unknown_0x18;
+    int unknown_0x1c;
 };
 static_assert(sizeof(MapDoorDesc) == 0x20);
 
