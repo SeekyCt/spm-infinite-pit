@@ -273,7 +273,7 @@ int ip_evt_dan_read_data(EvtEntry * entry, bool isFirstCall)
     {
         danWp = (DanWork *) spm::memory::__memAlloc(1, sizeof(*danWp));
         wii::string::memset(danWp, 0, sizeof(*danWp));
-        danWp->dungeons = (DanDungeon *) spm::memory::__memAlloc(1, sizeof(spm::dan::DanDungeon[DUNGEON_MAX]));
+        danWp->dungeons = (DanDungeon *) spm::memory::__memAlloc(1, sizeof(DanDungeon[DUNGEON_MAX]));
         wii::string::memset(danWp->dungeons, 0, sizeof(DanDungeon[DUNGEON_MAX]));
     }
 

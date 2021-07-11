@@ -1,6 +1,8 @@
 #pragma once
 
+#include <types.h>
 #include <spm/evt_door.h>
+#include <spm/evtmgr.h>
 #include <spm/evt_shop.h>
 #include <spm/npcdrv.h>
 

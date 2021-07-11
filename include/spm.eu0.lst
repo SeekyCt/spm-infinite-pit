@@ -399,7 +399,9 @@
 // MSL_C.PPCEABI.bare.H.a
 // printf.c
 8025d098:sprintf
+8025e784:sscanf
 // more
+
 // string.c
 8025a874:memmove
 8025e8fc:strcpy
