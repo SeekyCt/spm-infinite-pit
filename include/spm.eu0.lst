@@ -288,6 +288,12 @@
 // debug.c
 8019e33c:OSPanic
 
+// filemgr.c
+8019f724:fileAllocf
+8019fa8c:fileFree
+8019fc5c:fileAsyncf
+// more
+
 // fontmgr.c
 801a0070:FontDrawStart
 801a0150:FontDrawStart_alpha

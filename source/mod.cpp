@@ -15,6 +15,7 @@
 #include "titletextwindow.h"
 #include "xyzwindow.h"
 
+#include "ip_badges.h"
 #include "ip_dan.h"
 #include "ip_save.h"
 
@@ -182,6 +183,7 @@ void main()
     /* Infinite Pit Specific */
     ipSavePatch();
     ipDanPatch();
+    ipBadgePatch();
 }
 
 }
