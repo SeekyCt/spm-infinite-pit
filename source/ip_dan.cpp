@@ -271,9 +271,9 @@ int ip_evt_dan_read_data(EvtEntry * entry, bool isFirstCall)
     // (check is a relD leftover, this only runs once on retail anyway)
     if (isFirstCall)
     {
-        danWp = (DanWork *) spm::memory::__memAlloc(1, sizeof(*danWp));
+        danWp = new (spm::memory::Heap::MAP) DanWork;
         wii::string::memset(danWp, 0, sizeof(*danWp));
-        danWp->dungeons = (DanDungeon *) spm::memory::__memAlloc(1, sizeof(DanDungeon[DUNGEON_MAX]));
+        danWp->dungeons = new (spm::memory::Heap::MAP) DanDungeon[DUNGEON_MAX];
         wii::string::memset(danWp->dungeons, 0, sizeof(DanDungeon[DUNGEON_MAX]));
     }
 
@@ -282,7 +282,7 @@ int ip_evt_dan_read_data(EvtEntry * entry, bool isFirstCall)
 #else    
     // Prepare pit text to be read
     u32 size = spm::lzss10::lzss10GetDecompSize(pitText); // GCC can't handle lzss10ParseHeader
-    char * decompPitText = (char *) spm::memory::__memAlloc(0, size);
+    char * decompPitText = new char[size];
     spm::lzss10::lzss10Decompress(pitText, decompPitText);
     spm::parse::parseInit(decompPitText, size);
 #endif
@@ -337,7 +337,7 @@ int ip_evt_dan_read_data(EvtEntry * entry, bool isFirstCall)
     // Free pit text
     spm::parse::parsePop();
 #ifndef ONE_TIME_TXT_LOAD
-    spm::memory::__memFree(0, decompPitText);
+    delete decompPitText;
 #endif
 
     return EVT_RET_CONTINUE;

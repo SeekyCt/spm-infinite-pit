@@ -352,6 +352,7 @@
 // text
 801a626c:__memAlloc
 801a62f0:__memFree
+801a6e34:__dl__FPv
 // data
 8042a408:size_table
 // sdata
