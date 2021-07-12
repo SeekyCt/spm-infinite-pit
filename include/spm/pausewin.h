@@ -7,6 +7,9 @@
 
 namespace spm::pausewin {
 
+#define PAUSE_FLAG_HIGHLIGHT 0x10
+#define PAUSE_FLAG_OSCILLATE 0x100
+
 enum PauseTextureId
 {
     PAUSETEX_NONE = 0, // use with boxOnly
@@ -29,7 +32,7 @@ enum PauseTextureId
     // ...
 };
 
-enum PlusWinButtonId
+enum PlusWinButtonIdx
 {
     PLUSWIN_BTN_CHARS = 0,
     PLUSWIN_BTN_PIXLS = 1,
@@ -117,7 +120,7 @@ struct PluswinWork
     s32 state;
     s32 selectedButton;
     s32 prevSelectedButton;
-    wii::Vec2 cursorPos2;
+    wii::Vec2 cursorMoveDest;
     wii::Vec2 cursorPos;
     s8 submenuEntryIds[10];
     u8 unknown_0xaa[0x164 - 0xaa];

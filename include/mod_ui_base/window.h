@@ -32,11 +32,11 @@ public:
 
     Window();
     virtual ~Window();
-    void drawString(const char * str, f32 x, f32 y, const wii::RGBA * colour = nullptr, f32 scale = 1.0f,
+    static void drawString(const char * str, f32 x, f32 y, const wii::RGBA * colour = nullptr, f32 scale = 1.0f,
                     bool edge = false, bool noise = false, bool rainbow = false);
-    void drawMessage(const char * str, s32 x, s32 y, const wii::RGBA * colour = nullptr, f32 scale = 1.0f,
+    static void drawMessage(const char * str, s32 x, s32 y, const wii::RGBA * colour = nullptr, f32 scale = 1.0f,
                      bool edge = false, bool noise = false, bool rainbow = false);
-    void drawMessageSearch(const char * name, s32 x, s32 y, const wii::RGBA * colour = nullptr, f32 scale = 1.0f,
+    static void drawMessageSearch(const char * name, s32 x, s32 y, const wii::RGBA * colour = nullptr, f32 scale = 1.0f,
                      bool edge = false, bool noise = false, bool rainbow = false);
 
     static void windowMain();
