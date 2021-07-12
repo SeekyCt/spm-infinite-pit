@@ -9,11 +9,23 @@ namespace spm::pausewin {
 
 enum PauseTextureId
 {
-    PAUSETEX_CHARACTERS,
-    PAUSETEX_PIXLS,
-    PAUSETEX_ITEMS,
-    PAUSETEX_KEY_ITEMS,
-    PAUSETEX_CHAPTERS,
+    PAUSETEX_NONE = 0, // use with boxOnly
+    PAUSETEX_CHARACTERS_BTN = 0,
+    PAUSETEX_PIXLS_BTN = 1,
+    PAUSETEX_ITEMS_BTN = 2,
+    PAUSETEX_KEY_ITEMS_BTN = 3,
+    PAUSETEX_CHAPTERS_BTN = 4,
+    PAUSETEX_CARDS_BTN = 5,
+    PAUSETEX_RECIPES_BTN = 6,
+    PAUSETEX_MAPS_BTN = 7,
+    PAUSETEX_CHAPTER_1_BTN = 8,
+    PAUSETEX_CHAPTER_2_BTN = 9,
+    PAUSETEX_CHAPTER_3_BTN = 10,
+    PAUSETEX_CHAPTER_4_BTN = 11,
+    PAUSETEX_CHAPTER_5_BTN = 12,
+    PAUSETEX_CHAPTER_6_BTN = 13,
+    PAUSETEX_CHAPTER_7_BTN = 14,
+    PAUSETEX_CHAPTER_8_BTN = 15,
     // ...
 };
 
@@ -128,10 +140,10 @@ extern "C" {
 extern PluswinWork * pluswinWp;
 extern PausewinWork * pausewinWp;
 
-s32 pausewinEntry (f32 x, f32 y, f32 width, f32 height, int boxOnly, s32 textureId,
-                   int priority, PausewinFunc * initFunc, PausewinFunc * mainFunc,
-                   PausewinFunc * dispFunc, PausewinFunc * lateDispFunc,
-                   PausewinFunc * deleteFunc);
+s32 pausewinEntry (f32 x, f32 y, f32 width, f32 height, int boxOnly,
+                   PauseTextureId textureId, int priority, PausewinFunc * initFunc,
+                   PausewinFunc * mainFunc, PausewinFunc * dispFunc,
+                   PausewinFunc * lateDispFunc, PausewinFunc * deleteFunc);
 void pausewinMoveTo(s32, f32 x, f32 y);
 void pausewinAppear(s32 id);
 void pausewinDisappear(s32 id);

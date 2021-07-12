@@ -20,7 +20,7 @@ static CustomMessage msgs[]
 {
     {
         "menu_help_004",
-        "Equip & dequip your badges and\n"
+        "Equip or dequip your badges and\n"
         "view their effects."
     }
 };

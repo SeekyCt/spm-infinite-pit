@@ -1,5 +1,6 @@
-#include "assets/badgetex.h"
+#include "assets/ip_assets.h"
 #include "patch.h"
+#include "util.h"
 
 #include <types.h>
 #include <spm/filemgr.h>
@@ -17,7 +18,10 @@ namespace mod {
 using spm::filemgr::FileEntry;
 using spm::filemgr::fileAllocf;
 using spm::pausewin::PausewinEntry;
-using spm::pausewin::PAUSETEX_CHAPTERS;
+using spm::pausewin::PAUSETEX_NONE;
+using spm::pausewin::PAUSETEX_CHAPTERS_BTN;
+using spm::pausewin::PAUSETEX_CHAPTER_1_BTN;
+using spm::pausewin::PAUSETEX_CHAPTER_2_BTN;
 using spm::pausewin::PLUSWIN_BTN_CHAPTERS;
 using spm::pausewin::PLUSWIN_BTN_BG;
 using spm::pausewin::PLUSWIN_BTN_HELP;
@@ -32,93 +36,145 @@ using spm::pausewin::pausewinAppear;
 using spm::pausewin::pausewinDisappear;
 using spm::pausewin::pausewinDelete;
 using spm::pausewin::pausewinSetMessage;
+using spm::wpadmgr::wpadGetButtonsPressed;
 using wii::tpl::TPLHeader;
 using wii::tpl::ImageHeader;
+using wii::tpl::IMG_FMT_RGB5A3;
+using wii::tpl::IMG_FMT_CMPR;
 using wii::stdio::sprintf;
 
 #define PLUSWIN_BTN_BADGES PLUSWIN_BTN_CHAPTERS
-#define PAUSETEX_BADGES PAUSETEX_CHAPTERS
+#define PAUSETEX_BADGES_BTN PAUSETEX_CHAPTERS_BTN
 #define PLUSWIN_STATE_BADGES PLUSWIN_STATE_CHAPTERS
+#define PAUSETEX_BADGES_ALL PAUSETEX_CHAPTER_1_BTN
+#define PAUSETEX_BADGES_EQUIPPED PAUSETEX_CHAPTER_2_BTN
+
+#define MAIN_ENTRY(idx) (pausewinWp->entries + pluswinWp->entryIds[(idx)])
+#define MAIN_ENTRY_ID(idx) (pluswinWp->entryIds[(idx)])
+#define BADGE_ENTRY(idx) (pausewinWp->entries + pluswinWp->submenuEntryIds[(idx)])
+#define BADGE_ENTRY_ID(idx) (pluswinWp->submenuEntryIds[(idx)])
 
 enum BadgeSubmenuIds
 {
+    BADGE_BTN_ALL = 0,
+    BADGE_BTN_EQUIPPED = 1,
     // This position is requied, if deleted then this menu is considered closed by the game
     BADGE_BTN_MAIN = 9, 
 };
 
 /*
-    Override the Chapters button texture
+    Override some button textures
 */
+struct PauseTexOverride
+{
+    u16 imageId;
+    u16 expectedWidth;
+    u16 expectedHeight;
+    u16 expectedFormat;
+    const u8 * image;
+    const u32 * imageSize;
+};
+PauseTexOverride pauseOverrides[] =
+{
+    {PAUSETEX_BADGES_BTN, 120, 40, IMG_FMT_RGB5A3, badgeTex, &badgeTex_size},
+    {PAUSETEX_BADGES_ALL, 112, 32, IMG_FMT_CMPR, allTex, &allTex_size},
+    {PAUSETEX_BADGES_EQUIPPED, 112, 32, IMG_FMT_CMPR, equippedTex, &equippedTex_size},
+};
+static bool verifyImageProperties(ImageHeader * img, PauseTexOverride * def)
+{
+    return img->width == def->expectedWidth &&
+           img->height == def->expectedHeight &&
+           img->format ==  def->expectedFormat;
+}
 static FileEntry * pauseTplOverride(s32 filetype, const char * format, const char * dvdRoot,
                                     const char * lang)
 {
     // Default behaviour at hook
     FileEntry * file = fileAllocf(filetype, format, dvdRoot, lang);   
 
-    // Get chapter button image
-    TPLHeader * tpl = (TPLHeader *) file->sp->data;
-    ImageHeader * img = tpl->imageTable[PAUSETEX_BADGES].image;
+    // Apply overrides
+    for (u32 i = 0; i < ARRAY_SIZEOF(pauseOverrides); i++)
+    {
+        // Get def
+        PauseTexOverride * def = pauseOverrides + i;
 
-    // Copy custom texture in
-    assert(img->width == 120 && img->height == 40 && img->format == 5,
-           "Unable to insert badge button texture");
-    wii::string::memcpy(img->data, badgeTex, badgeTex_size);
+        // Get image
+        TPLHeader * tpl = (TPLHeader *) file->sp->data;
+        ImageHeader * img = tpl->imageTable[def->imageId].image;
+
+        // Verify user mods don't interfere
+        assertf(verifyImageProperties(img, def), "Unsupported pause.tpl edit to image %d",
+                def->imageId);
+
+        // Copy custom texture in
+        wii::string::memcpy(img->data, def->image, *def->imageSize);
+    }
 
     // Default behaviour at hook
     return file;
 }
 
-/*
-    Opens the badge menu
-*/
 static void badgeMenuMain(PausewinEntry * entry);
 static void badgeMenuDisp(PausewinEntry * entry);
 static void badgeMenuClose();
 static void badgeMenuOpen();
 
+/*
+    Opens the badge menu
+*/
 static void badgeMenuMain(PausewinEntry * entry)
 {
-    s8 x  = *(u8 *) 0x80000198;
-    s8 y  = *(u8 *) 0x80000199;
-    *(u16 *) 0x80000198 = 0xffff;
-    if (x != -1)
-        pausewinDisappear(pluswinWp->entryIds[x]);
-    if (y != -1)
-        pausewinAppear(pluswinWp->entryIds[y]);
-    
-    u32 btn = spm::wpadmgr::wpadGetButtonsPressed(0);
-    if (btn & WPAD_BTN_1)
+    if (wpadGetButtonsPressed(0) & WPAD_BTN_1)
         badgeMenuClose();
 }
 
+/*
+    Render the badge list
+*/
 static void badgeMenuDisp(PausewinEntry * entry)
 {
 
 }
 
+/*
+    Close the badge menu
+*/
 static void badgeMenuClose()
 {
     // Delete submenu elements
-    pausewinDelete(pluswinWp->submenuEntryIds[BADGE_BTN_MAIN]);
+    for (u32 i = 0; i < ARRAY_SIZEOF(pluswinWp->submenuEntryIds); i++)
+    {
+        if (BADGE_ENTRY_ID(i) != -1)
+            pausewinDelete(BADGE_ENTRY_ID(i));
+    }
 
     // Show main menu elements
     for (s32 i = 0; i < 8; i++)
     {
         if (i != PLUSWIN_BTN_BADGES)
-            pausewinAppear(pluswinWp->entryIds[i]);
+            pausewinAppear(MAIN_ENTRY_ID(i));
     }
-    pausewinAppear(pluswinWp->entryIds[PLUSWIN_BTN_STATS]);
+    pausewinAppear(MAIN_ENTRY_ID(PLUSWIN_BTN_STATS));
 
     // Move back badge button
-    PausewinEntry * badgeBtn = pausewinWp->entries + pluswinWp->entryIds[PLUSWIN_BTN_BADGES];
+    PausewinEntry * badgeBtn = MAIN_ENTRY(PLUSWIN_BTN_BADGES);
     f32 x = badgeBtn->originalPos.x;
     f32 y = badgeBtn->originalPos.y;
-    pausewinMoveTo(pluswinWp->entryIds[PLUSWIN_BTN_BADGES], x, y);
+    pausewinMoveTo(MAIN_ENTRY_ID(PLUSWIN_BTN_BADGES), x, y);
 
     // Restore help message
     char str[64];
     sprintf(str, "menu_help_%03d", pluswinWp->selectedButton);
-    pausewinSetMessage(pausewinWp->entries + pluswinWp->entryIds[PLUSWIN_BTN_HELP], 0, str);
+    pausewinSetMessage(MAIN_ENTRY(PLUSWIN_BTN_HELP), 0, str);
+}
+
+/*
+    Store a new element's id and make it appear
+*/
+static void initElement(s32 id, s32 idArrayIdx)
+{
+    BADGE_ENTRY_ID(idArrayIdx) = id;
+    pausewinAppear(id);
 }
 
 static void badgeMenuOpen()
@@ -127,21 +183,38 @@ static void badgeMenuOpen()
     for (s32 i = 0; i < 8; i++)
     {
         if (i != PLUSWIN_BTN_BADGES)
-            pausewinDisappear(pluswinWp->entryIds[i]);
+            pausewinDisappear(MAIN_ENTRY_ID(i));
     }
-    pausewinDisappear(pluswinWp->entryIds[PLUSWIN_BTN_STATS]);
+    pausewinDisappear(MAIN_ENTRY_ID(PLUSWIN_BTN_STATS));
+
+    // Clear element id array (I think this is left un-initialised?)
+    for (u32 i = 0; i < ARRAY_SIZEOF(pluswinWp->submenuEntryIds); i++)
+        BADGE_ENTRY_ID(i) = -1;
 
     // Create submenu elements
-    s32 id = pausewinEntry(0.0f, 0.0f, 0, 0, 0, 0, 0, nullptr, badgeMenuMain,
-                           badgeMenuDisp, nullptr, nullptr);
-    pluswinWp->submenuEntryIds[BADGE_BTN_MAIN] = id;
-    pausewinAppear(id);
+    initElement(
+        pausewinEntry(-250.0f, 130.0f, 0.0f, 0.0f, 0, PAUSETEX_BADGES_ALL, 0, nullptr, nullptr,
+                      nullptr, nullptr, nullptr),
+        BADGE_BTN_ALL
+    );
+    initElement(
+        pausewinEntry(-250.0f, 80.0f, 0.0f, 0.0f, 0, PAUSETEX_BADGES_EQUIPPED, 0, nullptr, nullptr,
+                      nullptr, nullptr, nullptr),
+        BADGE_BTN_EQUIPPED
+    );
+    initElement(
+        pausewinEntry(-120.0f, 130.0f, 375.0f, 230.0f, 1, PAUSETEX_NONE, 0, nullptr, badgeMenuMain,
+                      badgeMenuDisp, nullptr, nullptr),
+        BADGE_BTN_MAIN
+    );
+    BADGE_ENTRY(BADGE_BTN_EQUIPPED)->flags |= 0x10;
 
-    // Move badge button to corner
-    PausewinEntry * bg = pausewinWp->entries + pluswinWp->entryIds[PLUSWIN_BTN_BG];
+    // Move badge button to corner and stop oscillating
+    PausewinEntry * bg = MAIN_ENTRY(PLUSWIN_BTN_BG);
     f32 x = bg->pos.x + 10.0f;
     f32 y = bg->pos.y - 10.0f;
-    pausewinMoveTo(pluswinWp->entryIds[PLUSWIN_BTN_BADGES], x, y);
+    pausewinMoveTo(MAIN_ENTRY_ID(PLUSWIN_BTN_BADGES), x, y);
+    MAIN_ENTRY(PLUSWIN_BTN_BADGES)->flags &= ~0x100;
 
     // Init misc values
     pluswinWp->submenuIsFullClose = false;
@@ -157,7 +230,7 @@ static void badgeMenuOpen()
     id = plusWinWp->pauseWinEntryIds[9];
     pMVar5 = mario_pouch::pouchGetPtr();
     pausewin::pausewinSetMessage
-                (pausewinWp->entries + id,(uint)pMVar5->keyItem[plusWinWp->submenuSelectedButton],0);
+        (pausewinWp->entries + id,(uint)pMVar5->keyItem[plusWinWp->submenuSelectedButton],0);
     plusWinWp->keyItemEvt = NULL;
     plusWinWp->selectedItemId = 0;
     plusWinWp->submenuFlags = 0;
@@ -178,7 +251,6 @@ static void menuPatch()
 */
 void ipBadgePatch()
 {
-    *(u16 *) 0x80000198 = 0xffff;
     menuPatch();
 }
 
