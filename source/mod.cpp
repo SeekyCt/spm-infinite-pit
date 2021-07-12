@@ -18,6 +18,7 @@
 #include "ip_badges.h"
 #include "ip_dan.h"
 #include "ip_messages.h"
+#include "ip_pausetex.h"
 #include "ip_save.h"
 
 #include <types.h>
@@ -185,6 +186,7 @@ void main()
     ipBadgePatch();
     ipDanPatch();
     ipMessagePatch();
+    ipPauseTexPatch();
     ipSavePatch();
 }
 

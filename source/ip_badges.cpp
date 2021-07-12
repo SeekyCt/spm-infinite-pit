@@ -1,22 +1,16 @@
-#include "assets/ip_assets.h"
 #include "patch.h"
 #include "util.h"
 
+#include "ip_badges.h"
+
 #include <types.h>
-#include <spm/filemgr.h>
-#include <spm/memory.h>
 #include <spm/pausewin.h>
-#include <spm/system.h>
 #include <spm/wpadmgr.h>
 #include <wii/stdio.h>
-#include <wii/string.h>
-#include <wii/tpl.h>
 #include <wii/wpad.h>
 
 namespace mod {
 
-using spm::filemgr::FileEntry;
-using spm::filemgr::fileAllocf;
 using spm::pausewin::PausewinEntry;
 using spm::pausewin::PAUSETEX_NONE;
 using spm::pausewin::PAUSETEX_CHAPTERS_BTN;
@@ -26,7 +20,6 @@ using spm::pausewin::PLUSWIN_BTN_CHAPTERS;
 using spm::pausewin::PLUSWIN_BTN_BG;
 using spm::pausewin::PLUSWIN_BTN_HELP;
 using spm::pausewin::PLUSWIN_BTN_STATS;
-using spm::pausewin::PLUSWIN_STATE_MAIN_MENU;
 using spm::pausewin::PLUSWIN_STATE_CHAPTERS;
 using spm::pausewin::pluswinWp;
 using spm::pausewin::pausewinWp;
@@ -37,10 +30,6 @@ using spm::pausewin::pausewinDisappear;
 using spm::pausewin::pausewinDelete;
 using spm::pausewin::pausewinSetMessage;
 using spm::wpadmgr::wpadGetButtonsPressed;
-using wii::tpl::TPLHeader;
-using wii::tpl::ImageHeader;
-using wii::tpl::IMG_FMT_RGB5A3;
-using wii::tpl::IMG_FMT_CMPR;
 using wii::stdio::sprintf;
 
 #define PLUSWIN_BTN_BADGES PLUSWIN_BTN_CHAPTERS
@@ -61,58 +50,6 @@ enum BadgeSubmenuIds
     // This position is requied, if deleted then this menu is considered closed by the game
     BADGE_BTN_MAIN = 9, 
 };
-
-/*
-    Override some button textures
-*/
-struct PauseTexOverride
-{
-    u16 imageId;
-    u16 expectedWidth;
-    u16 expectedHeight;
-    u16 expectedFormat;
-    const u8 * image;
-    const u32 * imageSize;
-};
-PauseTexOverride pauseOverrides[] =
-{
-    {PAUSETEX_BADGES_BTN, 120, 40, IMG_FMT_RGB5A3, badgeTex, &badgeTex_size},
-    {PAUSETEX_BADGES_ALL, 112, 32, IMG_FMT_CMPR, allTex, &allTex_size},
-    {PAUSETEX_BADGES_EQUIPPED, 112, 32, IMG_FMT_CMPR, equippedTex, &equippedTex_size},
-};
-static bool verifyImageProperties(ImageHeader * img, PauseTexOverride * def)
-{
-    return img->width == def->expectedWidth &&
-           img->height == def->expectedHeight &&
-           img->format ==  def->expectedFormat;
-}
-static FileEntry * pauseTplOverride(s32 filetype, const char * format, const char * dvdRoot,
-                                    const char * lang)
-{
-    // Default behaviour at hook
-    FileEntry * file = fileAllocf(filetype, format, dvdRoot, lang);   
-
-    // Apply overrides
-    for (u32 i = 0; i < ARRAY_SIZEOF(pauseOverrides); i++)
-    {
-        // Get def
-        PauseTexOverride * def = pauseOverrides + i;
-
-        // Get image
-        TPLHeader * tpl = (TPLHeader *) file->sp->data;
-        ImageHeader * img = tpl->imageTable[def->imageId].image;
-
-        // Verify user mods don't interfere
-        assertf(verifyImageProperties(img, def), "Unsupported pause.tpl edit to image %d",
-                def->imageId);
-
-        // Copy custom texture in
-        wii::string::memcpy(img->data, def->image, *def->imageSize);
-    }
-
-    // Default behaviour at hook
-    return file;
-}
 
 static void badgeMenuMain(PausewinEntry * entry);
 static void badgeMenuDisp(PausewinEntry * entry);
@@ -242,7 +179,6 @@ static void badgeMenuOpen()
 */
 static void menuPatch()
 {
-    writeBranchLink(0x80184d6c, 0, pauseTplOverride);
     writeBranch(spm::pausewin::pluswinChapterWinOpen, 0, badgeMenuOpen);
 }
 
