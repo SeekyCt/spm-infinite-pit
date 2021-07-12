@@ -17,6 +17,7 @@
 
 #include "ip_badges.h"
 #include "ip_dan.h"
+#include "ip_messages.h"
 #include "ip_save.h"
 
 #include <types.h>
@@ -181,9 +182,10 @@ void main()
     MapSelectMenu::scanEntrances();
 
     /* Infinite Pit Specific */
-    ipSavePatch();
-    ipDanPatch();
     ipBadgePatch();
+    ipDanPatch();
+    ipMessagePatch();
+    ipSavePatch();
 }
 
 }
