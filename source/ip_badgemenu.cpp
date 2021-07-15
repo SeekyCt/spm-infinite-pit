@@ -129,7 +129,7 @@ enum BadgeSubmenuIdx
 const wii::RGBA BLACK {0x00, 0x00, 0x00, 0xff};
 const wii::RGBA RED {0xff, 0x00, 0x00, 0xff};
 
-static void initPage(s32 page, bool equippedOnly, bool up);
+static void initPage(s32 page, bool equippedOnly, s32 option);
 static void initElement(s32 id, s32 idx);
 static void moveToBadge();
 static void selectButton(s32 idx);
@@ -165,17 +165,25 @@ static s32 menuIdxToBadgeSlot(s32 idx)
 }
 
 /*
+    Returns the index into the current list of the selected badge
+*/
+static s32 getSelectedIdx()
+{
+    return work.page * BADGE_PAGE_SIZE + work.option;
+}
+
+/*
     Returns the badge inventory slot of the currently selected badge
 */
 static s32 getSelectedBadgeSlot()
 {
-    return menuIdxToBadgeSlot(work.page * BADGE_PAGE_SIZE + work.option);
+    return menuIdxToBadgeSlot(getSelectedIdx());
 }
 
 /*
     Sets the message displayed in the help box at the bottom of the menu
 */
-void setHelpMessage(const char * msgName)
+static void setHelpMessage(const char * msgName)
 {
     pausewinSetMessage(MAIN_ENTRY(PLUSWIN_BTN_HELP), 0, msgName);
 }
@@ -183,17 +191,14 @@ void setHelpMessage(const char * msgName)
 /*
     Calculate required values for this page of badges
 */
-static void initPage(s32 page, bool equippedOnly, bool up)
+static void initPage(s32 page, bool equippedOnly, s32 option)
 {
     // Back up parameters
     work.page = page;
     work.equippedOnly = equippedOnly;
 
     // Select initial value (bottom or top)
-    if (up)
-        work.option = BADGE_PAGE_SIZE - 1;
-    else
-        work.option = 0;
+    work.option = option;
 
     // Calculate the badge number at the start of this page
     work.pageStart = page * BADGE_PAGE_SIZE;
@@ -276,11 +281,114 @@ static void selectButton(s32 idx)
     }
 }
 
+static void updateOnAll(u32 btn)
+{
+    if (btn & WPAD_BTN_LEFT)
+    {
+        // Move down to Equipped button
+        initPage(0, true, 0);
+        selectButton(BADGE_BTN_EQUIPPED);
+    }
+    else if ((btn & (WPAD_BTN_DOWN | WPAD_BTN_2)) && countBadges() > 0)
+    {
+        // Move right to badge list
+        moveToBadge();
+    }
+}
+
+static void updateOnEquipped(u32 btn)
+{
+    if (btn & WPAD_BTN_RIGHT)
+    {
+        // Move up to All Badges button
+        initPage(0, false, 0);
+        selectButton(BADGE_BTN_ALL);
+    }
+    else if ((btn & (WPAD_BTN_DOWN | WPAD_BTN_2)) &&
+                countEquippedBadges() > 0)
+    {
+        // Move right to badge list
+        moveToBadge();
+    }
+}
+
+static void updateOnBadges(u32 btn)
+{
+    if (btn & WPAD_BTN_2)
+    {
+        PouchBadgeInfo * info = getBadgeInfoForSlot(getSelectedBadgeSlot());
+
+        // Dequip badge
+        info->equipped = !info->equipped;
+        // TODO: bp
+
+        // Special cases for equipped menu
+        if (!info->equipped && work.equippedOnly)
+        {
+            if (getSelectedIdx() == 0 && work.badgeCount == 1)
+            {
+                selectButton(BADGE_BTN_EQUIPPED);
+            }
+            else
+            {
+                initPage(work.page, true, work.option - 1);
+                moveToBadge();
+            }
+        }
+    }
+    else if (btn & WPAD_BTN_LEFT)
+    {
+        // Move down one badge
+        if (++work.option == work.pageBadgeCount)
+        {
+            // Handle being at the bottom of the page
+
+            if (work.page + 1 == work.pageCount)
+                // Move back if it's the bottom badge of the last page
+                --work.option;
+            else
+                // Move to top of the next page
+                initPage(work.page + 1, work.equippedOnly, 0);
+        }
+
+        // Move to new badge
+        moveToBadge();
+    }
+    else if (btn & WPAD_BTN_RIGHT)
+    {
+        // Move up one badge
+        if (--work.option == -1)
+        {
+            // Handle being at the top of the page
+
+            if (work.page == 0)
+                // Move back if it's the top of the first page
+                ++work.option;
+            else
+                // Move to the bottom of the previous page
+                initPage(work.page - 1, work.equippedOnly, BADGE_PAGE_SIZE - 1);
+        }
+
+        // Move to new badge 
+        moveToBadge();
+    }
+    else if (btn & WPAD_BTN_UP)
+    {
+        // Move to original button
+        if (work.equippedOnly)
+            selectButton(BADGE_BTN_EQUIPPED);
+        else
+            selectButton(BADGE_BTN_ALL);
+    }
+}
+
 /*
     Updates the menu
 */
 static void menuMain(PausewinEntry * entry)
 {
+    (void) entry;
+
     // Go back if pressing 1
     if (wpadGetButtonsPressed(0) & WPAD_BTN_1)
     {
@@ -303,80 +411,15 @@ static void menuMain(PausewinEntry * entry)
     switch (CUR_BTN)
     {
         case BADGE_BTN_ALL:
-            if (btn & WPAD_BTN_LEFT)
-            {
-                // Move down to Equipped button
-                initPage(0, true, false);
-                selectButton(BADGE_BTN_EQUIPPED);
-            }
-            else if ((btn & (WPAD_BTN_DOWN | WPAD_BTN_2)) &&
-                     countBadges() > 0)
-            {
-                // Move right to badge list
-                moveToBadge();
-            }
+            updateOnAll(btn);
             break;
 
         case BADGE_BTN_EQUIPPED:
-            if (btn & WPAD_BTN_RIGHT)
-            {
-                // Move up to All Badges button
-                initPage(0, false, false);
-                selectButton(BADGE_BTN_ALL);
-            }
-            else if ((btn & (WPAD_BTN_DOWN | WPAD_BTN_2)) &&
-                     countEquippedBadges() > 0)
-            {
-                // Move right to badge list
-                moveToBadge();
-            }
+            updateOnEquipped(btn);
             break;
 
         case BADGE_BTN_BADGES:
-            if (btn & WPAD_BTN_LEFT)
-            {
-                // Move down one badge
-                if (++work.option == work.pageBadgeCount)
-                {
-                    // Handle being at the bottom of the page
-
-                    if (work.page + 1 == work.pageCount)
-                        // Move back if it's the bottom badge of the last page
-                        --work.option;
-                    else
-                        // Move to top of the next page
-                        initPage(work.page + 1, work.equippedOnly, false);
-                }
-
-                // Move to new badge
-                moveToBadge();
-            }
-            else if (btn & WPAD_BTN_RIGHT)
-            {
-                // Move up one badge
-                if (--work.option == -1)
-                {
-                    // Handle being at the top of the page
-
-                    if (work.page == 0)
-                        // Move back if it's the top of the first page
-                        ++work.option;
-                    else
-                        // Move to the bottom of the previous page
-                        initPage(work.page - 1, work.equippedOnly, true);
-                }
-
-                // Move to new badge 
-                moveToBadge();
-            }
-            else if (btn & WPAD_BTN_UP)
-            {
-                // Move to original button
-                if (work.equippedOnly)
-                    selectButton(BADGE_BTN_EQUIPPED);
-                else
-                    selectButton(BADGE_BTN_ALL);
-            }
+            updateOnBadges(btn);
             break;
 
         default:
@@ -398,7 +441,7 @@ static void menuDisp(PausewinEntry * entry)
 
         const wii::RGBA * colour = info->equipped ? &RED : &BLACK;
         wii::Vec3 iconPos {-90.0f, y - 26.0f, 0.0f};
-        spm::icondrv::iconDispGx(0.7f, &iconPos, 0x10, 71);
+        spm::icondrv::iconDispGx(0.7f, &iconPos, 0x10, def->iconId);
         Window::drawMessageSearch(def->nameMsg, -60.0f, y, colour, 0.7f);
 
         y -= BADGE_LINE_HEIGHT;
@@ -489,7 +532,7 @@ static void menuOpen()
 
     // Init misc values
     pluswinWp->submenuIsFullClose = false;
-    initPage(0, false, false);
+    initPage(0, false, 0);
 
     // From key item opening, some of these may be wanted:
 

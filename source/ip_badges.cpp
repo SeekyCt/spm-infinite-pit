@@ -9,18 +9,21 @@ BadgeDef badgeDefs[NUM_BADGES] = {
     {
         "bn_test_1",
         "bd_test_1",
+        71,
         3
     },
     // BADGE_TEST_2
     {
         "bn_test_2",
         "bd_test_2",
+        72,
         1
     },
     // BADGE_TEST_3
     {
         "bn_test_3",
         "bd_test_3",
+        73,
         0
     },
 };

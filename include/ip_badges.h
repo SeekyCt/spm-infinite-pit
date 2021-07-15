@@ -23,7 +23,8 @@ struct BadgeDef
 {
     const char * nameMsg;
     const char * descMsg;
-    s32 bpCost;
+    s8 iconId;
+    s8 bpCost;
 };
 
 struct PouchBadgeInfo
