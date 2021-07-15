@@ -115,6 +115,9 @@ s32 countEquippedBadges()
     }
     return n;
 }
+/**/
+
+// TODO: SFX
 
 enum BadgeSubmenuIdx
 {
@@ -129,11 +132,17 @@ enum BadgeSubmenuIdx
 const wii::RGBA BLACK {0x00, 0x00, 0x00, 0xff};
 const wii::RGBA RED {0xff, 0x00, 0x00, 0xff};
 
+static s32 menuIdxToBadgeSlot(s32 idx);
+static s32 getSelectedIdx();
+static s32 getSelectedBadgeSlot();
+static void setHelpMessage(const char * msgName);
 static void initPage(s32 page, bool equippedOnly, s32 option);
 static void initElement(s32 id, s32 idx);
 static void moveToBadge();
 static void selectButton(s32 idx);
-static void setHelpMessage(const char * name);
+static void updateOnAll(u32 btn);
+static void updateOnEquipped(u32 btn);
+static void updateOnBadges(u32 btn);
 static void menuMain(PausewinEntry * entry);
 static void menuDisp(PausewinEntry * entry);
 static void menuClose();
@@ -146,13 +155,13 @@ static s32 menuIdxToBadgeSlot(s32 idx)
 {
     if (work.equippedOnly)
     {
-        s32 n = idx + 1;
+        // Return the index containing the idx'th equipped badge
         s32 i;
         for (i = 0; true; i++)
         {
             if (getBadgeInfoForSlot(i)->equipped)
             {
-                if (--n == 0)
+                if (--idx < 0)
                     break;
             }
         }
@@ -160,6 +169,7 @@ static s32 menuIdxToBadgeSlot(s32 idx)
     }
     else
     {
+        // Index == slot
         return idx;
     }
 }
@@ -215,9 +225,17 @@ static void initPage(s32 page, bool equippedOnly, s32 option)
     // If on the final page and the total count isn't a multiple of 8, the page
     // badge count is the badge count mod 8, otherwise it's just 8
     if (work.page + 1 == work.pageCount && work.badgeCount % BADGE_PAGE_SIZE != 0)
+    {
         work.pageBadgeCount = work.badgeCount % BADGE_PAGE_SIZE;
+    }
     else
-        work.pageBadgeCount = BADGE_PAGE_SIZE;
+    {
+        // This doesn't apply when no badges are on the page
+        if (work.badgeCount == 0)
+            work.pageBadgeCount = 0;
+        else
+            work.pageBadgeCount = BADGE_PAGE_SIZE;
+    }
 }
 
 /*
@@ -281,9 +299,16 @@ static void selectButton(s32 idx)
     }
 }
 
+/*
+    Handles inputs when on the All Badges button
+*/
 static void updateOnAll(u32 btn)
 {
-    if (btn & WPAD_BTN_LEFT)
+    if (btn & WPAD_BTN_1)
+    {
+        menuClose();
+    }
+    else if (btn & WPAD_BTN_LEFT)
     {
         // Move down to Equipped button
         initPage(0, true, 0);
@@ -296,42 +321,70 @@ static void updateOnAll(u32 btn)
     }
 }
 
+/*
+    Handles inputs when on the Equipped button
+*/
 static void updateOnEquipped(u32 btn)
 {
-    if (btn & WPAD_BTN_RIGHT)
+    if (btn & WPAD_BTN_1)
+    {
+        menuClose();
+    }
+    else if (btn & WPAD_BTN_RIGHT)
     {
         // Move up to All Badges button
         initPage(0, false, 0);
         selectButton(BADGE_BTN_ALL);
     }
-    else if ((btn & (WPAD_BTN_DOWN | WPAD_BTN_2)) &&
-                countEquippedBadges() > 0)
+    else if ((btn & (WPAD_BTN_DOWN | WPAD_BTN_2)) && countEquippedBadges() > 0)
     {
         // Move right to badge list
         moveToBadge();
     }
 }
 
+/*
+    Handles inputs when in the badge list
+*/
 static void updateOnBadges(u32 btn)
 {
-    if (btn & WPAD_BTN_2)
+    if (btn & WPAD_BTN_1)
+    {
+        if (work.equippedOnly)
+            selectButton(BADGE_BTN_EQUIPPED);
+        else
+            selectButton(BADGE_BTN_ALL);        
+    }
+    else if (btn & WPAD_BTN_2)
     {
         PouchBadgeInfo * info = getBadgeInfoForSlot(getSelectedBadgeSlot());
 
-        // Dequip badge
+        // Equip/Dequip badge
         info->equipped = !info->equipped;
         // TODO: bp
 
         // Special cases for equipped menu
         if (!info->equipped && work.equippedOnly)
         {
-            if (getSelectedIdx() == 0 && work.badgeCount == 1)
+            if (work.badgeCount == 1)
             {
+                // If this is the last badge, move back to the side button 
                 selectButton(BADGE_BTN_EQUIPPED);
+                initPage(0, true, 0);
             }
             else
             {
-                initPage(work.page, true, work.option - 1);
+                if (work.pageBadgeCount == 1)
+                {
+                    // If this is the last badge on its page, move up one
+                    initPage(work.page - 1, true, BADGE_PAGE_SIZE - 1);
+                }
+                else
+                {
+                    // Move up one badge, or stay on the first badge of the page
+                    s32 option = work.option != 0 ? work.option - 1 : 0;
+                    initPage(work.page, true, option);
+                }
                 moveToBadge();
             }
         }
@@ -389,24 +442,7 @@ static void menuMain(PausewinEntry * entry)
 {
     (void) entry;
 
-    // Go back if pressing 1
-    if (wpadGetButtonsPressed(0) & WPAD_BTN_1)
-    {
-        if (CUR_BTN == BADGE_BTN_BADGES)
-        {
-            if (work.equippedOnly)
-                selectButton(BADGE_BTN_EQUIPPED);
-            else
-                selectButton(BADGE_BTN_ALL);
-        }
-        else
-        {
-            menuClose();
-        }
-        return;
-    }
-    
-    // Handle other inputs
+    // Handle inputs based on button selected
     u32 btn = wpadGetButtonsPressed(0);
     switch (CUR_BTN)
     {
@@ -481,8 +517,6 @@ static void menuClose()
     char str[64];
     sprintf(str, "menu_help_%03d", pluswinWp->selectedButton);
     setHelpMessage(str);
-
-    // TODO: SFX
 }
 
 /*
