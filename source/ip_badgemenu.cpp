@@ -117,7 +117,7 @@ s32 countEquippedBadges()
 }
 /**/
 
-// TODO: SFX
+// TODO: SFX, btnRpt
 
 enum BadgeSubmenuIdx
 {
@@ -306,6 +306,7 @@ static void updateOnAll(u32 btn)
 {
     if (btn & WPAD_BTN_1)
     {
+        // Close if 1 is pressed
         menuClose();
     }
     else if (btn & WPAD_BTN_LEFT)
@@ -328,6 +329,7 @@ static void updateOnEquipped(u32 btn)
 {
     if (btn & WPAD_BTN_1)
     {
+        // Close if 1 is pressed
         menuClose();
     }
     else if (btn & WPAD_BTN_RIGHT)
@@ -350,6 +352,7 @@ static void updateOnBadges(u32 btn)
 {
     if (btn & WPAD_BTN_1)
     {
+        // Move back if 1 is pressed
         if (work.equippedOnly)
             selectButton(BADGE_BTN_EQUIPPED);
         else
@@ -376,14 +379,17 @@ static void updateOnBadges(u32 btn)
             {
                 if (work.pageBadgeCount == 1)
                 {
-                    // If this is the last badge on its page, move up one
+                    // If this is the only badge on its page, move to previous page
                     initPage(work.page - 1, true, BADGE_PAGE_SIZE - 1);
                 }
                 else
                 {
-                    // Move up one badge, or stay on the first badge of the page
-                    s32 option = work.option != 0 ? work.option - 1 : 0;
-                    initPage(work.page, true, option);
+                    // Move up one badge if this is the last badge
+                    if (getSelectedIdx() + 1 == work.badgeCount)
+                        work.option -= 1;
+                    
+                    // Regenerate page
+                    initPage(work.page, true, work.option);
                 }
                 moveToBadge();
             }
