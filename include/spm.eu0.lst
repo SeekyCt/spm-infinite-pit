@@ -1,6 +1,8 @@
 /* OS Globals */
 
 800000e4:currentThread
+800030c8:firstRel
+800030cc:lastRel
 // more
 
 /* Dol */
@@ -298,6 +300,7 @@
 
 // debug.c
 8019e33c:OSPanic
+// more
 
 // filemgr.c
 8019f724:fileAllocf
@@ -325,6 +328,17 @@
 801a1d50:FontDrawMessageMtx
 801a28ac:FontGetMessageWidth
 // more
+
+// memory.c
+// text
+801a626c:__memAlloc
+801a62f0:__memFree
+801a6e34:__dl__FPv
+// data
+8042a408:size_table
+// sdata
+805ae168:memoryWp
+805ae16c:memorySwp
 
 // parse.c
 801a6e9c:parseInit
@@ -365,18 +379,6 @@
 // seqdef.c
 804287a8:seq_data
 
-// memory.c
-// text
-801a626c:__memAlloc
-801a62f0:__memFree
-801a6e34:__dl__FPv
-// data
-8042a408:size_table
-// sdata
-805ae168:memoryWp
-805ae16c:memorySwp
-// more
-
 // DEMOInit.c
 801a94c8:DEMOBeforeRender
 801a9590:DEMODoneRender
@@ -409,6 +411,13 @@
 8023edcc:nandUpdateSave
 8023efe0:nandLoadSave
 // more
+
+// homebutton.c
+// text
+80241914:homebuttonMain
+// more
+// data
+805ae1b8:homebuttonWp
 
 // lz_embedded.c
 8036afc0:pitText
@@ -468,6 +477,14 @@
 // mtx.c
 8027a270:PSMTXIdentity
 8027afac:C_MTXOrtho
+// more
+
+// dvd.a
+// dvdfs.c
+8027b910:DVDConvertPathToEntrynum
+// more
+// dvd_broadway.c
+805ae2d8:devDiStr
 // more
 
 // vi.a

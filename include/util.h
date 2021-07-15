@@ -40,3 +40,4 @@ void updateSaveChecksum(spm::nandmgr::SaveFile * save);
 
 const char * getGameRegion();
 int getGameRevision();
+void * getModRelLoadAddr();
