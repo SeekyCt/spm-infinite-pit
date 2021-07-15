@@ -15,7 +15,7 @@
 #include "titletextwindow.h"
 #include "xyzwindow.h"
 
-#include "ip_badges.h"
+#include "ip_badgemenu.h"
 #include "ip_dan.h"
 #include "ip_messages.h"
 #include "ip_pausetex.h"
@@ -183,7 +183,7 @@ void main()
     MapSelectMenu::scanEntrances();
 
     /* Infinite Pit Specific */
-    ipBadgePatch();
+    ipBadgeMenuPatch();
     ipDanPatch();
     ipMessagePatch();
     ipPauseTexPatch();

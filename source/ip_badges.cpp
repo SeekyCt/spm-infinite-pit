@@ -3,6 +3,7 @@
 #include "util.h"
 
 #include "ip_badges.h"
+#include "ip_badgemenu.h"
 
 #include <types.h>
 #include <spm/icondrv.h>
@@ -65,13 +66,54 @@ static struct
 /*
     Temporary stubs
 */
+PouchBadgeInfo badgePouch[] =
+{
+    {BADGEID_TEST_1, true},
+    {BADGEID_TEST_2, false},
+    {BADGEID_TEST_3, false},
+    {BADGEID_TEST_1, true},
+    {BADGEID_TEST_2, false},
+    {BADGEID_TEST_3, false},
+    {BADGEID_TEST_1, true},
+    {BADGEID_TEST_2, true},
+    {BADGEID_TEST_3, false},
+    {BADGEID_TEST_1, true},
+    {BADGEID_TEST_2, false},
+    {BADGEID_TEST_3, false},
+    {BADGEID_NONE, false},
+    {BADGEID_NONE, false},
+    {BADGEID_NONE, false},
+    {BADGEID_NONE, false},
+};
+PouchBadgeInfo * getBadgeInfoForSlot(s32 slot)
+{
+    return &badgePouch[slot];
+}
+BadgeDef * getBadgeDefForSlot(s32 slot)
+{
+    return badgeDefs + badgePouch[slot].id;
+}
 s32 countBadges()
 {
-    return 14;
+    u32 i;
+    for (i = 0; i < ARRAY_SIZEOF(badgePouch); i++)
+    {
+        if (getBadgeInfoForSlot(i)->id == BADGEID_NONE)
+            break;
+    }
+    return i;
 }
 s32 countEquippedBadges()
 {
-    return 4;
+    s32 n = 0;
+    for (u32 i = 0; i < ARRAY_SIZEOF(badgePouch); i++)
+    {
+        if (getBadgeInfoForSlot(i)->id == BADGEID_NONE)
+            break;
+        if (getBadgeInfoForSlot(i)->equipped)
+            n++;
+    }
+    return n;
 }
 
 enum BadgeSubmenuIdx
@@ -91,10 +133,52 @@ static void initPage(s32 page, bool equippedOnly, bool up);
 static void initElement(s32 id, s32 idx);
 static void moveToBadge();
 static void selectButton(s32 idx);
+static void setHelpMessage(const char * name);
 static void menuMain(PausewinEntry * entry);
 static void menuDisp(PausewinEntry * entry);
 static void menuClose();
 static void menuOpen();
+
+/*
+    Returns the badge inventory slot for an index into the displayed list
+*/
+static s32 menuIdxToBadgeSlot(s32 idx)
+{
+    if (work.equippedOnly)
+    {
+        s32 n = idx + 1;
+        s32 i;
+        for (i = 0; true; i++)
+        {
+            if (getBadgeInfoForSlot(i)->equipped)
+            {
+                if (--n == 0)
+                    break;
+            }
+        }
+        return i;
+    }
+    else
+    {
+        return idx;
+    }
+}
+
+/*
+    Returns the badge inventory slot of the currently selected badge
+*/
+static s32 getSelectedBadgeSlot()
+{
+    return menuIdxToBadgeSlot(work.page * BADGE_PAGE_SIZE + work.option);
+}
+
+/*
+    Sets the message displayed in the help box at the bottom of the menu
+*/
+void setHelpMessage(const char * msgName)
+{
+    pausewinSetMessage(MAIN_ENTRY(PLUSWIN_BTN_HELP), 0, msgName);
+}
 
 /*
     Calculate required values for this page of badges
@@ -136,7 +220,10 @@ static void initPage(s32 page, bool equippedOnly, bool up)
 */
 static void initElement(s32 id, s32 idx)
 {
+    // Store id
     BADGE_ENTRY_ID(idx) = id;
+
+    // Make it appear
     pausewinAppear(id);
 }
 
@@ -145,10 +232,16 @@ static void initElement(s32 id, s32 idx)
 */
 static void moveToBadge()
 {
+    // Update current button
     CUR_BTN = BADGE_BTN_BADGES;
+
+    // Move cursor
     f32 lineY = 155.0f - (33.0f * work.option);
-    pluswinWp->cursorMoveDest.x = -25.0f;
+    pluswinWp->cursorMoveDest.x = -120.0f;
     pluswinWp->cursorMoveDest.y = lineY - 20.0f;
+
+    // Update help message
+    setHelpMessage(getBadgeDefForSlot(getSelectedBadgeSlot())->descMsg);
 }
 
 /*
@@ -168,6 +261,19 @@ static void selectButton(s32 idx)
     BADGE_ENTRY(CUR_BTN)->flags |= PAUSE_FLAG_HIGHLIGHT;
     pluswinWp->cursorMoveDest.x = BADGE_ENTRY(CUR_BTN)->pos.x - 25.0f;
     pluswinWp->cursorMoveDest.y = BADGE_ENTRY(CUR_BTN)->pos.y - 20.0f;
+
+    // Update help message
+    switch (idx)
+    {
+        case BADGE_BTN_ALL:
+            setHelpMessage("menu_help_badges_all");
+            break;
+        case BADGE_BTN_EQUIPPED:
+            setHelpMessage("menu_help_badges_equipped");
+            break;
+        default:
+            break;
+    }
 }
 
 /*
@@ -203,7 +309,8 @@ static void menuMain(PausewinEntry * entry)
                 initPage(0, true, false);
                 selectButton(BADGE_BTN_EQUIPPED);
             }
-            else if ((btn & WPAD_BTN_DOWN) && countBadges() > 0)
+            else if ((btn & (WPAD_BTN_DOWN | WPAD_BTN_2)) &&
+                     countBadges() > 0)
             {
                 // Move right to badge list
                 moveToBadge();
@@ -217,7 +324,8 @@ static void menuMain(PausewinEntry * entry)
                 initPage(0, false, false);
                 selectButton(BADGE_BTN_ALL);
             }
-            else if ((btn & WPAD_BTN_DOWN) && countEquippedBadges() > 0)
+            else if ((btn & (WPAD_BTN_DOWN | WPAD_BTN_2)) &&
+                     countEquippedBadges() > 0)
             {
                 // Move right to badge list
                 moveToBadge();
@@ -284,10 +392,15 @@ static void menuDisp(PausewinEntry * entry)
     f32 y = 155.0f;
     for (s32 i = work.pageStart; i < work.pageStart + work.pageBadgeCount; i++)
     {
-        if (work.option == i - work.pageStart)
-            Window::drawString("test string", 0.0f, y, &RED, 0.7f);
-        else
-            Window::drawString("test string", 0.0f, y, &BLACK, 0.7f);
+        s32 slot = menuIdxToBadgeSlot(i);
+        BadgeDef * def = getBadgeDefForSlot(slot);
+        PouchBadgeInfo * info = getBadgeInfoForSlot(slot);
+
+        const wii::RGBA * colour = info->equipped ? &RED : &BLACK;
+        wii::Vec3 iconPos {-90.0f, y - 26.0f, 0.0f};
+        spm::icondrv::iconDispGx(0.7f, &iconPos, 0x10, 71);
+        Window::drawMessageSearch(def->nameMsg, -60.0f, y, colour, 0.7f);
+
         y -= BADGE_LINE_HEIGHT;
     }
 }
@@ -324,7 +437,7 @@ static void menuClose()
     // Restore help message
     char str[64];
     sprintf(str, "menu_help_%03d", pluswinWp->selectedButton);
-    pausewinSetMessage(MAIN_ENTRY(PLUSWIN_BTN_HELP), 0, str);
+    setHelpMessage(str);
 
     // TODO: SFX
 }
@@ -396,19 +509,11 @@ static void menuOpen()
 }
 
 /*
-    Apply the menu related patches
-*/
-static void menuPatch()
-{
-    writeBranch(spm::pausewin::pluswinChapterWinOpen, 0, menuOpen);
-}
-
-/*
     Public function to apply all patches
 */
-void ipBadgePatch()
+void ipBadgeMenuPatch()
 {
-    menuPatch();
+    writeBranch(spm::pausewin::pluswinChapterWinOpen, 0, menuOpen);
 }
 
 }
