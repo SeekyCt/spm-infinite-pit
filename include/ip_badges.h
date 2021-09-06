@@ -7,7 +7,7 @@
 
 #include <types.h>
 
-namespace mod {
+namespace ip {
 
 #define NUM_BADGES 3
 

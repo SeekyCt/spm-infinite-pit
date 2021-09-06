@@ -1,6 +1,5 @@
 #include "consolewindow.h"
 #include "evt_cmd.h"
-#include "mod.h"
 #include "patch.h"
 #include "util.h"
 
@@ -12,7 +11,7 @@
 #include <wii/string.h>
 #include <wii/stdio.h>
 
-namespace mod {
+namespace ip {
 
 constexpr u32 newMapnameOffset = sizeof("title");
 
@@ -46,7 +45,7 @@ static void undoVanillaBlock(spm::nandmgr::SaveFile * save)
     if (wii::string::strcmp(name, "title") != 0)
     {
         const wii::RGBA errorColour = {0xff, 0x00, 0x00, 0xff};
-        ConsoleWindow::push("Vanilla saves can not be loaded!", &errorColour);
+        mod::ConsoleWindow::push("Vanilla saves can not be loaded!", &errorColour);
         wii::string::strcpy(name, "title");
         return;
     }
@@ -111,7 +110,7 @@ static void updateSavePatch()
     // This conflicts with a practice codes patch, so that's undone
     writeWord(spm::nandmgr::nandUpdateSave, 0, 0x9421ffe0); // stwu r1, -0x20 (r1)
 
-    nandUpdateSaveReal = patch::hookFunction(spm::nandmgr::nandUpdateSave,
+    nandUpdateSaveReal = mod::patch::hookFunction(spm::nandmgr::nandUpdateSave,
         [](int saveId)
         {
             // Carry out vanilla behaviour
@@ -123,7 +122,7 @@ static void updateSavePatch()
             blockVanillaLoad(save);
 
             // Update checksum after mod edits
-            updateSaveChecksum(save);
+            mod::updateSaveChecksum(save);
         }
     );
 
@@ -138,7 +137,7 @@ static void (*nandLoadSaveReal)(int saveId);
 
 static void readSavePatch()
 {
-    nandLoadSaveReal = patch::hookFunction(spm::nandmgr::nandLoadSave,
+    nandLoadSaveReal = mod::patch::hookFunction(spm::nandmgr::nandLoadSave,
         [](int saveId)
         {
             // Carry out vanila behaviour
@@ -160,7 +159,7 @@ static void readSavePatch()
 /*
     Public function to apply all patches
 */
-void ipSavePatch()
+void savePatch()
 {
     updateSavePatch();
     readSavePatch();

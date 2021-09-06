@@ -12,7 +12,7 @@
 #include <wii/stdio.h>
 #include <wii/wpad.h>
 
-namespace mod {
+namespace ip {
 
 using spm::icondrv::iconDispGx;
 using spm::pausewin::PausewinEntry;
@@ -484,7 +484,7 @@ static void menuDisp(PausewinEntry * entry)
         const wii::RGBA * colour = info->equipped ? &RED : &BLACK;
         wii::Vec3 iconPos {-90.0f, y - 26.0f, 0.0f};
         spm::icondrv::iconDispGx(0.7f, &iconPos, 0x10, def->iconId);
-        Window::drawMessageSearch(def->nameMsg, -60.0f, y, colour, 0.7f);
+        mod::Window::drawMessageSearch(def->nameMsg, -60.0f, y, colour, 0.7f);
 
         y -= BADGE_LINE_HEIGHT;
     }
@@ -594,7 +594,7 @@ static void menuOpen()
 /*
     Public function to apply all patches
 */
-void ipBadgeMenuPatch()
+void badgeMenuPatch()
 {
     writeBranch(spm::pausewin::pluswinChapterWinOpen, 0, menuOpen);
 }

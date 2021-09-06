@@ -2,7 +2,7 @@
 
 #include <types.h>
 
-namespace mod {
+namespace ip {
 
 BadgeDef badgeDefs[NUM_BADGES] = {
     // BADGE_TEST_1

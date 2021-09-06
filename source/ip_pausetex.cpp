@@ -10,7 +10,7 @@
 #include <wii/string.h>
 #include <wii/tpl.h>
 
-namespace mod {
+namespace ip {
 
 using spm::filemgr::FileEntry;
 using spm::filemgr::fileAllocf;
@@ -85,7 +85,7 @@ static FileEntry * pauseTplOverride(s32 filetype, const char * format, const cha
 /*
     Apply pause.tpl texture patches
 */
-void ipPauseTexPatch()
+void pauseTexPatch()
 {
     writeBranchLink(0x80184d6c, 0, pauseTplOverride);
 }

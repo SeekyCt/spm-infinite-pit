@@ -39,7 +39,7 @@ using spm::lz_embedded::pitText;
 using spm::item_data::DAN_KEY;
 using spm::item_data::URA_DAN_KEY;
 
-namespace mod {
+namespace ip {
 
 static EVT_BEGIN_EDITABLE(ip_dan_enemy_room_init_evt)
     SET(LW(0), GSW(1))
@@ -586,7 +586,7 @@ static const char * danChestRoomMaps[] = {
     "dan_64"
 };
 
-void ipDanPatch()
+void danPatch()
 {
     for (u32 i = 0; i < ARRAY_SIZEOF(danEnemyRoomMaps); i++)
         spm::mapdata::mapDataPtr(danEnemyRoomMaps[i])->script = ip_dan_enemy_room_init_evt;

@@ -1,4 +1,4 @@
-#include "mod.h"
+#include "ip.h"
 #include "ip_badgemenu.h"
 #include "ip_dan.h"
 #include "ip_messages.h"
@@ -15,21 +15,21 @@
 #include <spm/seqdef.h>
 #include <wii/OSError.h>
 
-namespace mod {
+namespace ip {
 
 /*
     General mod functions
 */
 
-void ipmain()
+void main()
 {
-    wii::OSError::OSReport("SPM Infinite Pit v0 DEV: the mod has ran!\n");
+    wii::OSError::OSReport(IP_VERSION ": main running\n");
 
-    ipBadgeMenuPatch();
-    ipDanPatch();
-    ipMessagePatch();
-    ipPauseTexPatch();
-    ipSavePatch();
+    badgeMenuPatch();
+    danPatch();
+    messagePatch();
+    pauseTexPatch();
+    savePatch();
 }
 
 }

@@ -5,7 +5,7 @@
 #include <spm/msgdrv.h>
 #include <wii/string.h>
 
-namespace mod {
+namespace ip {
 
 /*
     Custom Message Data
@@ -68,9 +68,9 @@ static CustomMessage msgs[]
     Public function to apply all patches
 */
 static const char * (*msgSearchReal)(const char * msgName);
-void ipMessagePatch()
+void messagePatch()
 {
-    msgSearchReal = patch::hookFunction(spm::msgdrv::msgSearch,
+    msgSearchReal = mod::patch::hookFunction(spm::msgdrv::msgSearch,
         [](const char * msgName)
         {
             for (u32 i = 0; i < ARRAY_SIZEOF(msgs); i++)

@@ -5,8 +5,8 @@
 
 #pragma once
 
-namespace mod {
+namespace ip {
 
-void ipDanPatch();
+void danPatch();
 
 }
