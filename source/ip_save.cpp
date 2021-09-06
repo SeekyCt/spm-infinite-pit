@@ -46,7 +46,7 @@ static void undoVanillaBlock(spm::nandmgr::SaveFile * save)
     if (wii::string::strcmp(name, "title") != 0)
     {
         const wii::RGBA errorColour = {0xff, 0x00, 0x00, 0xff};
-        ConsoleWindow::sInstance->push("Vanilla saves can not be loaded!", nullptr, &errorColour);
+        ConsoleWindow::push("Vanilla saves can not be loaded!", &errorColour);
         wii::string::strcpy(name, "title");
         return;
     }
@@ -108,6 +108,9 @@ static void (*nandUpdateSaveReal)(int saveId);
 
 static void updateSavePatch()
 {
+    // This conflicts with a practice codes patch, so that's undone
+    writeWord(spm::nandmgr::nandUpdateSave, 0, 0x9421ffe0); // stwu r1, -0x20 (r1)
+
     nandUpdateSaveReal = patch::hookFunction(spm::nandmgr::nandUpdateSave,
         [](int saveId)
         {

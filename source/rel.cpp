@@ -14,7 +14,7 @@ void _unresolved();
 
 namespace mod {
 
-extern void main();
+extern void ipmain();
 
 }
 
@@ -27,7 +27,7 @@ void _prolog()
     }
     
     // Run mod main
-    mod::main();
+    mod::ipmain();
 }
 
 void _epilog()
