@@ -1,3 +1,4 @@
+#include "mod_ui_base/colours.h"
 #include "mod_ui_base/window.h"
 #include "patch.h"
 #include "util.h"
@@ -128,9 +129,6 @@ enum BadgeSubmenuIdx
     // No PausewinEntry
     BADGE_BTN_BADGES = 10
 };
-
-const wii::RGBA BLACK {0x00, 0x00, 0x00, 0xff};
-const wii::RGBA RED {0xff, 0x00, 0x00, 0xff};
 
 static s32 menuIdxToBadgeSlot(s32 idx);
 static s32 getSelectedIdx();
@@ -481,7 +479,7 @@ static void menuDisp(PausewinEntry * entry)
         BadgeDef * def = getBadgeDefForSlot(slot);
         PouchBadgeInfo * info = getBadgeInfoForSlot(slot);
 
-        const wii::RGBA * colour = info->equipped ? &RED : &BLACK;
+        const wii::RGBA * colour = info->equipped ? &colours::red : &colours::black;
         wii::Vec3 iconPos {-90.0f, y - 26.0f, 0.0f};
         spm::icondrv::iconDispGx(0.7f, &iconPos, 0x10, def->iconId);
         mod::Window::drawMessageSearch(def->nameMsg, -60.0f, y, colour, 0.7f);
