@@ -482,13 +482,8 @@ static void menuDisp(PausewinEntry * entry)
         BadgeDef * def = getBadgeDefForSlot(slot);
         PouchBadgeInfo * info = getBadgeInfoForSlot(slot);
         
-        spm::gxsub::gxsubInit_Tpl(&badgeIconTpl);
-        wii::Mtx34 mtx;
-        const f32 scale = 0.7f;
-        wii::mtx::PSMTXScale(&mtx, scale, scale, scale);
-        wii::mtx::PSMTXTransApply(&mtx, &mtx, -90.0f, y - (20 * scale), 0.0f);
-        spm::gxsub::gxsubDrawTextureMtx(def->iconId, &mtx, &colours::white);
-        
+        mod::Window::drawTexture(&badgeIconTpl, def->iconId, -105.0f, y, 0.7f, &colours::white);
+
         const wii::RGBA * colour = info->equipped ? &colours::red : &colours::black;
         mod::Window::drawMessageSearch(def->nameMsg, -60.0f, y, colour, 0.7f);
 
