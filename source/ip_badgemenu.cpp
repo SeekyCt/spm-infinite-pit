@@ -3,14 +3,17 @@
 #include "patch.h"
 #include "util.h"
 
+#include "assets/ip_assets.h"
 #include "ip_badges.h"
 #include "ip_badgemenu.h"
 
 #include <types.h>
+#include <spm/gxsub.h>
 #include <spm/icondrv.h>
 #include <spm/pausewin.h>
 #include <spm/wpadmgr.h>
 #include <wii/stdio.h>
+#include <wii/mtx.h>
 #include <wii/wpad.h>
 
 namespace ip {
@@ -478,10 +481,15 @@ static void menuDisp(PausewinEntry * entry)
         s32 slot = menuIdxToBadgeSlot(i);
         BadgeDef * def = getBadgeDefForSlot(slot);
         PouchBadgeInfo * info = getBadgeInfoForSlot(slot);
-
+        
+        spm::gxsub::gxsubInit_Tpl(&badgeIconTpl);
+        wii::Mtx34 mtx;
+        const f32 scale = 0.7f;
+        wii::mtx::PSMTXScale(&mtx, scale, scale, scale);
+        wii::mtx::PSMTXTransApply(&mtx, &mtx, -90.0f, y - (20 * scale), 0.0f);
+        spm::gxsub::gxsubDrawTextureMtx(def->iconId, &mtx, &colours::white);
+        
         const wii::RGBA * colour = info->equipped ? &colours::red : &colours::black;
-        wii::Vec3 iconPos {-90.0f, y - 26.0f, 0.0f};
-        spm::icondrv::iconDispGx(0.7f, &iconPos, 0x10, def->iconId);
         mod::Window::drawMessageSearch(def->nameMsg, -60.0f, y, colour, 0.7f);
 
         y -= BADGE_LINE_HEIGHT;
@@ -577,12 +585,6 @@ static void menuOpen()
     /*
     plusWinWp->field_0x16c = 0;
     plusWinWp->field_0x170 = 0;
-    bVar1 = plusWinWp->submenuPausewinIds[0];
-    plusWinWp->cursorMoveDest = pausewinWp->entries[(char)bVar1].pos;
-    id = plusWinWp->pauseWinEntryIds[9];
-    pMVar5 = mario_pouch::pouchGetPtr();
-    pausewin::pausewinSetMessage
-        (pausewinWp->entries + id,(uint)pMVar5->keyItem[plusWinWp->submenuSelectedButton],0);
     plusWinWp->keyItemEvt = NULL;
     plusWinWp->selectedItemId = 0;
     plusWinWp->submenuFlags = 0;
@@ -594,6 +596,7 @@ static void menuOpen()
 */
 void badgeMenuPatch()
 {
+    wii::tpl::TPLBind(&badgeIconTpl);
     writeBranch(spm::pausewin::pluswinChapterWinOpen, 0, menuOpen);
 }
 

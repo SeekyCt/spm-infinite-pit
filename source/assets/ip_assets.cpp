@@ -16,5 +16,6 @@ __asm__ (
 INCLUDE_ASSET(allTex, alltex.bin, data, wa)
 INCLUDE_ASSET(badgeTex, badgetex.bin, rodata, a)
 INCLUDE_ASSET(equippedTex, equippedTex.bin, rodata, a)
+INCLUDE_ASSET(badgeIconTpl, badgeicon.tpl, data, wa)
 
 );
