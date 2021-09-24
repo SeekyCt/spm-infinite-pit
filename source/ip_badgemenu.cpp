@@ -3,7 +3,7 @@
 #include "patch.h"
 #include "util.h"
 
-#include "assets/ip_assets.h"
+#include "ip_assets.h"
 #include "ip_badges.h"
 #include "ip_badgemenu.h"
 

@@ -1,4 +1,4 @@
-#include "assets/ip_assets.h"
+#include "ip_assets.h"
 #include "patch.h"
 #include "util.h"
 
