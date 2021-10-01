@@ -263,7 +263,7 @@ static u32 sMapMask = 0;
 static u32 sEnterDoor = 0;
 #endif
 
-int ip_evt_dan_read_data(EvtEntry * entry, bool isFirstCall)
+s32 ip_evt_dan_read_data(EvtEntry * entry, bool isFirstCall)
 {
     (void) entry;
 
@@ -291,8 +291,8 @@ int ip_evt_dan_read_data(EvtEntry * entry, bool isFirstCall)
     while (spm::parse::parsePush("<Dungeon>"))
     {
         // Read no (dungeon id)
-        int no = 0;
-        int i = 0;
+        s32 no = 0;
+        s32 i = 0;
         spm::parse::parseTagGet1("<no>", spm::parse::PARSE_VALUE_TYPE_INT, &no);
         // assertf(144, no >= 0 && no < DUNGEON_MAX, "なんか番号がおかしい [%d]", no);
 
@@ -343,12 +343,12 @@ int ip_evt_dan_read_data(EvtEntry * entry, bool isFirstCall)
     return EVT_RET_CONTINUE;
 }
 
-int ip_evt_dan_handle_map_parts(EvtEntry * entry, bool isFirstCall)
+s32 ip_evt_dan_handle_map_parts(EvtEntry * entry, bool isFirstCall)
 {
     (void) isFirstCall;
 
     // Get dungeon
-    int no = spm::evtmgr_cmd::evtGetValue(entry, entry->pCurData[0]);
+    s32 no = spm::evtmgr_cmd::evtGetValue(entry, entry->pCurData[0]);
     DanDungeon * dungeon = danWp->dungeons + no;
 
     // Turn off all parts by default
@@ -409,12 +409,12 @@ int ip_evt_dan_handle_map_parts(EvtEntry * entry, bool isFirstCall)
     return EVT_RET_CONTINUE;
 }
 
-int ip_evt_dan_handle_dokans(EvtEntry * entry, bool isFirstCall)
+s32 ip_evt_dan_handle_dokans(EvtEntry * entry, bool isFirstCall)
 {
     (void) isFirstCall;
 
     // Get dungeon
-    int no = spm::evtmgr_cmd::evtGetValue(entry, entry->pCurData[0]);
+    s32 no = spm::evtmgr_cmd::evtGetValue(entry, entry->pCurData[0]);
     DanDungeon * dungeon = danWp->dungeons + no;
 
     // Turn off all pipes by default
@@ -459,14 +459,14 @@ int ip_evt_dan_handle_dokans(EvtEntry * entry, bool isFirstCall)
     return EVT_RET_CONTINUE;
 }
 
-int ip_evt_dan_handle_doors(EvtEntry * entry, bool isFirstCall)
+s32 ip_evt_dan_handle_doors(EvtEntry * entry, bool isFirstCall)
 {
     (void) isFirstCall;
 
     // Get dungeon and room
     EvtScriptCode * args = entry->pCurData;
-    int no = spm::evtmgr_cmd::evtGetValue(entry, args[0]);
-    int room = spm::evtmgr_cmd::evtGetValue(entry, args[1]);
+    s32 no = spm::evtmgr_cmd::evtGetValue(entry, args[0]);
+    s32 room = spm::evtmgr_cmd::evtGetValue(entry, args[1]);
     DanDungeon * dungeon = danWp->dungeons + no;
 
     // Hide all doors by default
@@ -558,7 +558,7 @@ int ip_evt_dan_handle_doors(EvtEntry * entry, bool isFirstCall)
     return EVT_RET_CONTINUE;
 }
 
-int ip_evt_dan_get_door_names(EvtEntry * entry, bool isFirstCall)
+s32 ip_evt_dan_get_door_names(EvtEntry * entry, bool isFirstCall)
 {
     (void) isFirstCall;
 
@@ -570,7 +570,7 @@ int ip_evt_dan_get_door_names(EvtEntry * entry, bool isFirstCall)
 }
 
 
-int ip_evt_dan_get_exit_door_name_l(EvtEntry * entry, bool isFirstCall)
+s32 ip_evt_dan_get_exit_door_name_l(EvtEntry * entry, bool isFirstCall)
 {
     (void) isFirstCall;
 
@@ -580,7 +580,7 @@ int ip_evt_dan_get_exit_door_name_l(EvtEntry * entry, bool isFirstCall)
     return EVT_RET_CONTINUE;
 }
 
-int ip_evt_dan_get_enemy_info(EvtEntry * entry, bool isFirstCall)
+s32 ip_evt_dan_get_enemy_info(EvtEntry * entry, bool isFirstCall)
 {
     (void) isFirstCall;
 
@@ -631,17 +631,17 @@ int ip_evt_dan_get_enemy_info(EvtEntry * entry, bool isFirstCall)
     }
 }
 
-inline void ip_danPushSpawnTable(int doorId)
+inline void ip_danPushSpawnTable(s32 doorId)
 {
     danWp->spawnTable[danWp->spawnTableCount++] = doorId;
 }
 
-int ip_evt_dan_make_spawn_table(EvtEntry * entry, bool isFirstCall)
+s32 ip_evt_dan_make_spawn_table(EvtEntry * entry, bool isFirstCall)
 {
     (void) isFirstCall;
 
     // Get dungeon
-    int no = spm::evtmgr_cmd::evtGetValue(entry, entry->pCurData[0]);
+    s32 no = spm::evtmgr_cmd::evtGetValue(entry, entry->pCurData[0]);
     DanDungeon * dungeon = danWp->dungeons + no;
 
     // Build spawn table with all available doors
@@ -694,11 +694,11 @@ int ip_evt_dan_make_spawn_table(EvtEntry * entry, bool isFirstCall)
     ip_danPushSpawnTable(32);
 
     // Randomise spawn table
-    for (int i = 0; i < 100; i++)
+    for (s32 i = 0; i < 100; i++)
     {
-        int idx1 = spm::system::rand() % danWp->spawnTableCount;
-        int idx2 = spm::system::rand() % danWp->spawnTableCount;
-        int temp = danWp->spawnTable[idx1];
+        s32 idx1 = spm::system::rand() % danWp->spawnTableCount;
+        s32 idx2 = spm::system::rand() % danWp->spawnTableCount;
+        s32 temp = danWp->spawnTable[idx1];
         danWp->spawnTable[idx1] = danWp->spawnTable[idx2];
         danWp->spawnTable[idx2] = temp;
     }
