@@ -38,6 +38,8 @@ using spm::dan::danWp;
 using spm::lz_embedded::pitText;
 using spm::item_data::DAN_KEY;
 using spm::item_data::URA_DAN_KEY;
+using spm::npcdrv::NPCEnemyTemplate;
+using spm::npcdrv::NPCTribe;
 
 namespace ip {
 
@@ -60,7 +62,7 @@ static EVT_BEGIN_EDITABLE(ip_dan_enemy_room_init_evt)
         USER_FUNC(spm::evt_mobj::evt_mobj_zyo, PTR("lock_00"), URA_DAN_KEY, LW(2), LW(3), LW(4), 0, PTR(spm::dan::dan_lock_interact_evt),
                   PTR(spm::dan::dan_lock_open_evt), 0)
     END_IF()
-    USER_FUNC(spm::dan::func_80c82d38, LW(0))
+    USER_FUNC(spm::dan::evt_dan_make_spawn_table, LW(0))
     SET(LW(10), 0)
     SET(LW(9), 0)
     DO(16)
@@ -245,19 +247,17 @@ static EVT_BEGIN_EDITABLE(ip_dan_chest_room_init_evt)
 EVT_END()
 
 //#define ONE_TIME_TXT_LOAD
+//#define CONSTANT_MAP_MASK
+//#define CONSTANT_ENTRY_DOOR
 
 #ifdef ONE_TIME_TXT_LOAD
 static char * sDecompPitText;
 static u32 sDecompPitTextSize;
 #endif
 
-//#define CONSTANT_MAP_MASK
-
 #ifdef CONSTANT_MAP_MASK
 static u32 sMapMask = 0;
 #endif
-
-//#define CONSTANT_ENTRY_DOOR
 
 #ifdef CONSTANT_ENTRY_DOOR
 static u32 sEnterDoor = 0;
@@ -558,6 +558,154 @@ int ip_evt_dan_handle_doors(EvtEntry * entry, bool isFirstCall)
     return EVT_RET_CONTINUE;
 }
 
+int ip_evt_dan_get_door_names(EvtEntry * entry, bool isFirstCall)
+{
+    (void) isFirstCall;
+
+    EvtScriptCode * args = entry->pCurData;
+    spm::evtmgr_cmd::evtSetValue(entry, args[0], (s32) danWp->enterDoorName);
+    spm::evtmgr_cmd::evtSetValue(entry, args[1], (s32) danWp->exitDoorName);
+
+    return EVT_RET_CONTINUE;
+}
+
+
+int ip_evt_dan_get_exit_door_name_l(EvtEntry * entry, bool isFirstCall)
+{
+    (void) isFirstCall;
+
+    EvtScriptCode * args = entry->pCurData;
+    spm::evtmgr_cmd::evtSetValue(entry, args[0], (s32) danWp->exitDoorName_l);
+
+    return EVT_RET_CONTINUE;
+}
+
+int ip_evt_dan_get_enemy_info(EvtEntry * entry, bool isFirstCall)
+{
+    (void) isFirstCall;
+
+    // Get dungeon and enemy index
+    EvtScriptCode * args = entry->pCurData;    
+    s32 no = spm::evtmgr_cmd::evtGetValue(entry, args[0]);
+    s32 enemyIdx = spm::evtmgr_cmd::evtGetValue(entry, args[1]);
+    DanDungeon * dungeon = danWp->dungeons + no;
+
+    if ((enemyIdx < 0) || (enemyIdx >= 16))
+    {
+        // Return 0 for invalid enemies
+        spm::evtmgr_cmd::evtSetValue(entry, args[2], 0);
+        spm::evtmgr_cmd::evtSetValue(entry, args[3], 0);
+
+        return EVT_RET_CONTINUE;
+    }
+    else
+    {
+        // Get enemy
+        DanEnemy * enemy = dungeon->enemies + enemyIdx;
+
+        if (enemy->num > 0)
+        {
+            // Find template with correct tribe id
+            s32 tribeId = enemy->name - 1;
+            s32 i;
+            NPCEnemyTemplate * curTemplate = spm::npcdrv::npcEnemyTemplates;
+            for (i = 0; i < NPCTEMPLATE_MAX; i++, curTemplate++)
+            {
+                if (((curTemplate->unknown_0x8 & 1) == 0) && (curTemplate->tribeId == tribeId))
+                    break;
+            }
+            // assertf(628, i < NPCTEMPLATE_MAX, "みつかりませんでした[%d]", tribeId);
+
+            // Return template id and num
+            spm::evtmgr_cmd::evtSetValue(entry, args[2], i);
+            spm::evtmgr_cmd::evtSetValue(entry, args[3], enemy->num);
+        }
+        else
+        {
+            // Return 0 for empty enemy slots
+            spm::evtmgr_cmd::evtSetValue(entry, args[2], 0);
+            spm::evtmgr_cmd::evtSetValue(entry, args[3], 0);
+        }
+
+        return EVT_RET_CONTINUE;
+    }
+}
+
+inline void ip_danPushSpawnTable(int doorId)
+{
+    danWp->spawnTable[danWp->spawnTableCount++] = doorId;
+}
+
+int ip_evt_dan_make_spawn_table(EvtEntry * entry, bool isFirstCall)
+{
+    (void) isFirstCall;
+
+    // Get dungeon
+    int no = spm::evtmgr_cmd::evtGetValue(entry, entry->pCurData[0]);
+    DanDungeon * dungeon = danWp->dungeons + no;
+
+    // Build spawn table with all available doors
+    danWp->spawnTableCount = 0;
+    if (CHECK_ANY_MASK(dungeon->map, 0x400))
+        ip_danPushSpawnTable(1);
+    ip_danPushSpawnTable(2);
+    ip_danPushSpawnTable(3);
+    if (CHECK_ANY_MASK(dungeon->map, 0x1000))
+    {
+        ip_danPushSpawnTable(4);
+        ip_danPushSpawnTable(5);
+    }
+    ip_danPushSpawnTable(6);
+    ip_danPushSpawnTable(7);
+    if (CHECK_ANY_MASK(dungeon->map, 0x8000))
+        ip_danPushSpawnTable(8);
+    if (CHECK_ANY_MASK(dungeon->map, 0x40))
+    {
+        ip_danPushSpawnTable(10);
+        ip_danPushSpawnTable(11);
+    }
+    ip_danPushSpawnTable(12);
+    ip_danPushSpawnTable(13);
+    if (CHECK_ANY_MASK(dungeon->map, 0x100))
+    {
+        ip_danPushSpawnTable(14);
+        ip_danPushSpawnTable(15);
+    }
+    if (CHECK_ANY_MASK(dungeon->map, 0x1))
+        ip_danPushSpawnTable(17);
+    ip_danPushSpawnTable(18);
+    ip_danPushSpawnTable(19);
+    if (CHECK_ANY_MASK(dungeon->map, 0x4))
+    {
+        ip_danPushSpawnTable(20);
+        ip_danPushSpawnTable(21);
+    }
+    ip_danPushSpawnTable(22);
+    ip_danPushSpawnTable(23);
+    if (CHECK_ANY_MASK(dungeon->map, 0x20))
+        ip_danPushSpawnTable(24);
+    ip_danPushSpawnTable(25);
+    ip_danPushSpawnTable(26);
+    ip_danPushSpawnTable(27);
+    ip_danPushSpawnTable(28);
+    ip_danPushSpawnTable(29);
+    ip_danPushSpawnTable(30);
+    ip_danPushSpawnTable(31);
+    ip_danPushSpawnTable(32);
+
+    // Randomise spawn table
+    for (int i = 0; i < 100; i++)
+    {
+        int idx1 = spm::system::rand() % danWp->spawnTableCount;
+        int idx2 = spm::system::rand() % danWp->spawnTableCount;
+        int temp = danWp->spawnTable[idx1];
+        danWp->spawnTable[idx1] = danWp->spawnTable[idx2];
+        danWp->spawnTable[idx2] = temp;
+    }
+
+    return EVT_RET_CONTINUE;
+}
+
 static const char * danEnemyRoomMaps[] = {
     // Flipside
     "dan_01",
@@ -598,6 +746,10 @@ void danPatch()
     writeBranch(spm::dan::evt_dan_handle_map_parts, 0, ip_evt_dan_handle_map_parts);
     writeBranch(spm::dan::evt_dan_handle_dokans, 0, ip_evt_dan_handle_dokans);
     writeBranch(spm::dan::evt_dan_handle_doors, 0, ip_evt_dan_handle_doors);
+    writeBranch(spm::dan::evt_dan_get_door_names, 0, ip_evt_dan_get_door_names);
+    writeBranch(spm::dan::evt_dan_get_exit_door_name_l, 0, ip_evt_dan_get_exit_door_name_l);
+    writeBranch(spm::dan::evt_dan_get_enemy_info, 0, ip_evt_dan_get_enemy_info);
+    writeBranch(spm::dan::evt_dan_make_spawn_table, 0, ip_evt_dan_make_spawn_table);
 
 #ifdef ONE_TIME_TXT_LOAD
     sDecompPitTextSize = spm::lzss10::lzss10GetDecompSize(pitText);
