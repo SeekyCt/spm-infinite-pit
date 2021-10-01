@@ -22,6 +22,7 @@
 #include <spm/memory.h>
 #include <spm/parse.h>
 #include <spm/seq_title.h>
+#include <spm/seqdrv.h>
 #include <spm/system.h>
 #include <spm/rel/dan.h>
 #include <wii/OSError.h>
@@ -40,6 +41,8 @@ using spm::item_data::DAN_KEY;
 using spm::item_data::URA_DAN_KEY;
 using spm::npcdrv::NPCEnemyTemplate;
 using spm::npcdrv::NPCTribe;
+using spm::npcdrv::NPCEntry;
+using spm::npcdrv::NPCWork;
 
 namespace ip {
 
@@ -706,6 +709,95 @@ s32 ip_evt_dan_make_spawn_table(EvtEntry * entry, bool isFirstCall)
     return EVT_RET_CONTINUE;
 }
 
+s32 ip_evt_dan_get_enemy_spawn_pos(EvtEntry * entry, bool isInitialCall)
+{
+    (void) isInitialCall;
+
+    // Get enemy number, dungeon, and enemy
+    EvtScriptCode * args = entry->pCurData;
+    s32 enemyNum = spm::evtmgr_cmd::evtGetValue(entry, args[0]);
+    s32 no = spm::evtmgr_cmd::evtGetValue(entry, args[1]);
+    s32 enemyIdx = spm::evtmgr_cmd::evtGetValue(entry, args[2]);
+    DanDungeon * dungeon = danWp->dungeons + no;
+    DanEnemy * enemy = dungeon->enemies + enemyIdx;
+
+    // Find the (enemyNum % danWp->spawnTableCount)th available door
+    s32 targetPos = enemyNum % danWp->spawnTableCount;
+    s32 j = 0;
+    char doorName[64];
+    if (enemy->pos != 0)
+    {
+        wii::stdio::sprintf(doorName, "A2_doa_%02d", enemy->pos);
+    }
+    else
+    {
+        s32 i;
+        for (i = 0; i < danWp->spawnTableCount; i++)
+        {
+            if ((danWp->doorInfo.enter != danWp->spawnTable[i]) && (danWp->doorInfo.exit != danWp->spawnTable[i]))
+            {
+                if (j == targetPos)
+                    break;
+                j++;
+            }
+        }
+        wii::stdio::sprintf(doorName, "A2_doa_%02d", danWp->spawnTable[i]);
+    }
+
+    // Get the position of the door to spawn the enemy at
+    wii::Vec3 doorPos;
+    spm::hitdrv::hitObjGetPos(doorName, &doorPos);
+    doorPos.z = 0.0f;
+
+    // Unknown, outputs coords with some changes if needed
+    f32 f1, f2, f3, f4, f5, f6, f7;
+    f4 = 1000.0f;
+    if (spm::hitdrv::hitCheckFilter(doorPos.x, doorPos.y, 0.0f, 0.0f, -1.0f, 0.0f, nullptr, &f1, &f2, &f3, &f4, &f5, &f6, &f7))
+    {
+        spm::evtmgr_cmd::evtSetFloat(entry, args[3], f1);
+        spm::evtmgr_cmd::evtSetFloat(entry, args[4], f2);
+        spm::evtmgr_cmd::evtSetFloat(entry, args[5], f3);
+    }
+    else
+    {
+        spm::evtmgr_cmd::evtSetFloat(entry, args[3], doorPos.x);
+        spm::evtmgr_cmd::evtSetFloat(entry, args[4], doorPos.y);
+        spm::evtmgr_cmd::evtSetFloat(entry, args[5], doorPos.z);
+    }
+
+    return EVT_RET_CONTINUE;
+}
+
+s32 ip_evt_dan_decide_key_enemy(EvtEntry * entry, bool isFirstCall)
+{
+    (void) isFirstCall;
+
+    // Get the item id of the key
+    s32 itemId = spm::evtmgr_cmd::evtGetValue(entry, entry->pCurData[0]);
+
+    // Make a list of all available enemies
+    NPCWork * npcWp = spm::npcdrv::npcGetWorkPtr();
+    NPCEntry * curNpc = npcWp->entries;
+    s32 enemyCount = 0;
+    NPCEntry * enemies[80];
+    for (s32 i = 0; i < npcWp->num; curNpc++, i++)
+    {
+        if (CHECK_ANY_MASK(curNpc->flags_8, 0x1) && !CHECK_ANY_MASK(curNpc->flags_8, 0x40000))
+            enemies[enemyCount++] = curNpc;
+    }
+
+    // Allocate key
+    enemies[spm::system::rand() % enemyCount]->dropItemId = itemId;
+
+    return EVT_RET_CONTINUE;
+}
+
+void ip_danCountdownDone()
+{
+    // Kill the player
+    spm::seqdrv::seqSetSeq(spm::seqdrv::SEQ_GAMEOVER, nullptr, nullptr);
+}
+
 static const char * danEnemyRoomMaps[] = {
     // Flipside
     "dan_01",
@@ -750,6 +842,9 @@ void danPatch()
     writeBranch(spm::dan::evt_dan_get_exit_door_name_l, 0, ip_evt_dan_get_exit_door_name_l);
     writeBranch(spm::dan::evt_dan_get_enemy_info, 0, ip_evt_dan_get_enemy_info);
     writeBranch(spm::dan::evt_dan_make_spawn_table, 0, ip_evt_dan_make_spawn_table);
+    writeBranch(spm::dan::evt_dan_get_enemy_spawn_pos, 0, ip_evt_dan_get_enemy_spawn_pos);
+    writeBranch(spm::dan::evt_dan_decide_key_enemy, 0, ip_evt_dan_decide_key_enemy);
+    writeBranch(spm::dan::danCountdownDone, 0, ip_danCountdownDone);
 
 #ifdef ONE_TIME_TXT_LOAD
     sDecompPitTextSize = spm::lzss10::lzss10GetDecompSize(pitText);
