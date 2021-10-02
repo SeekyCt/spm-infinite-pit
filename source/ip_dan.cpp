@@ -13,16 +13,20 @@
 #include <spm/evt_snd.h>
 #include <spm/evt_sub.h>
 #include <spm/hitdrv.h>
+#include <spm/hud.h>
 #include <spm/itemdrv.h>
 #include <spm/item_data.h>
 #include <spm/lzss10.h>
 #include <spm/lz_embedded.h>
 #include <spm/mapdata.h>
 #include <spm/mapdrv.h>
+#include <spm/mario_pouch.h>
 #include <spm/memory.h>
+#include <spm/mobjdrv.h>
 #include <spm/parse.h>
 #include <spm/seq_title.h>
 #include <spm/seqdrv.h>
+#include <spm/somewhere.h>
 #include <spm/system.h>
 #include <spm/rel/dan.h>
 #include <wii/OSError.h>
@@ -43,6 +47,10 @@ using spm::npcdrv::NPCEnemyTemplate;
 using spm::npcdrv::NPCTribe;
 using spm::npcdrv::NPCEntry;
 using spm::npcdrv::NPCWork;
+using spm::itemdrv::ItemWork;
+using spm::itemdrv::ItemEntry;
+using spm::mobjdrv::MOBJEntry;
+using wii::Vec3;
 
 namespace ip {
 
@@ -552,7 +560,7 @@ s32 ip_evt_dan_handle_doors(EvtEntry * entry, bool isFirstCall)
     spm::evtmgr_cmd::evtSetValue(entry, GSWF(23), 0);
 
     // Output lock position
-    wii::Vec3 doorPos;
+    Vec3 doorPos;
     spm::hitdrv::hitObjGetPos(danWp->exitDoorHitName2d, &doorPos);
     spm::evtmgr_cmd::evtSetFloat(entry, args[4], doorPos.x);
     spm::evtmgr_cmd::evtSetFloat(entry, args[5], doorPos.y - 40.0f);
@@ -745,7 +753,7 @@ s32 ip_evt_dan_get_enemy_spawn_pos(EvtEntry * entry, bool isInitialCall)
     }
 
     // Get the position of the door to spawn the enemy at
-    wii::Vec3 doorPos;
+    Vec3 doorPos;
     spm::hitdrv::hitObjGetPos(doorName, &doorPos);
     doorPos.z = 0.0f;
 
@@ -798,6 +806,182 @@ void ip_danCountdownDone()
     spm::seqdrv::seqSetSeq(spm::seqdrv::SEQ_GAMEOVER, nullptr, nullptr);
 }
 
+s32 ip_evt_dan_start_countdown(EvtEntry * entry, bool isFirstCall)
+{
+    (void) entry;
+    (void) isFirstCall;
+
+    // Start the 5 minute timer
+    spm::hud::hudStartCountdown(300, spm::dan::danCountdownDone);
+
+    return EVT_RET_CONTINUE;
+}
+
+bool ip_danCheckKeyInMapBbox()
+{
+    // Get the item list
+    ItemWork * itemWp = spm::itemdrv::itemGetWork();
+    ItemEntry * item = itemWp->entries;
+
+    // Get the range of valid coordinates
+    Vec3 min, max;
+    spm::hitdrv::hitGetMapEntryBbox(0, &min, &max);
+    
+    // Check whether any item is the key within valid coordinates
+    int itemCount = itemWp->num;
+    int i;
+    for (i = 0; i < itemCount; i++, item++)
+    {
+        if (
+            CHECK_ANY_MASK(item->flags, 0x1) &&
+            ((item->type == DAN_KEY) || (item->type == URA_DAN_KEY)) &&
+            (min.x <= item->position.x) && (max.x >= item->position.x) &&
+            (min.y <= item->position.y) && (max.y >= item->position.y) &&
+            (min.z <= item->position.z) && (max.z >= item->position.z)
+        )
+            break;
+    }
+
+    if (i < itemCount)
+        return true;
+    else
+        return false;
+}
+
+bool ip_danCheckKeyEnemyInMapBbox()
+{
+    // Get the enemy list
+    NPCWork * npcWp = spm::npcdrv::npcGetWorkPtr();
+    NPCEntry * npc = npcWp->entries;
+
+    // Get the range of valid coordinates
+    Vec3 min, max;
+    spm::hitdrv::hitGetMapEntryBbox(0, &min, &max);
+
+    // Maybe a typo?
+    min.x -= 5.0f;
+    min.y -= 5.0f;
+    min.z -= 5.0f;
+    min.x += 5.0f;
+    min.y += 5.0f;
+    min.z += 5.0f;
+
+    // Check whether any NPC is an enemy with the key within valid coordinates
+    int npcCount = npcWp->num;
+    int i;
+    for (i = 0; i < npcCount; i++, npc++)
+    {
+        if (CHECK_ANY_MASK(npc->flags_8, 0x1))
+        {
+            Vec3 tempMin = {min.x, min.y, min.z};
+            tempMin.y -= npc->unknown_0x3ac;
+            if (
+                (tempMin.x <= npc->position.x) && (max.x >= npc->position.x) &&
+                (tempMin.y <= npc->position.y) && (max.y >= npc->position.y) &&
+                (tempMin.z <= npc->position.z) && (max.z >= npc->position.z)
+            )
+                break;
+        }
+    }
+
+    if (i < npcCount)
+        return true;
+    else
+        return false;
+}
+
+int ip_evt_dan_handle_key_failsafe(EvtEntry * entry, bool isFirstCall)
+{
+    (void) isFirstCall;
+
+    using spm::dan::danCheckKeyEnemyInMapBbox;
+    using spm::dan::danCheckKeyInMapBbox;
+    using spm::mario_pouch::pouchCheckHaveItem;
+    using spm::itemdrv::itemCheckForId;
+
+    // Check whether the key exists anywhere
+    if (
+        !danCheckKeyEnemyInMapBbox() && !danCheckKeyInMapBbox() &&
+        !pouchCheckHaveItem(DAN_KEY) && !pouchCheckHaveItem(URA_DAN_KEY) &&
+        !itemCheckForId(DAN_KEY) && !itemCheckForId(URA_DAN_KEY)
+    )
+    {
+        // Spawn the key at the lock if not
+        MOBJEntry * lock = spm::mobjdrv::mobjNameToPtr("lock_00");
+        s32 keyId = DAN_KEY;
+        if (spm::evtmgr_cmd::evtGetValue(entry, GSW(1)) >= 100)
+            keyId = URA_DAN_KEY;
+        
+        spm::itemdrv::itemEntry(nullptr, lock->pos.x, lock->pos.y, 0.0f, keyId, 1, nullptr, 0);
+        spm::somewhere::func_800cd554(lock->pos.x, lock->pos.y, 0.0f, 0.0f, -1.0f, 0.0f, 4, 8);
+        spm::somewhere::func_800b426c(lock->pos.x, lock->pos.y, 0.0f, 1, 0);
+
+        return EVT_RET_CONTINUE;
+    }
+    else
+    {
+        return EVT_RET_BLOCK_WEAK;
+    }
+}
+
+int ip_evt_dan_handle_chest_room_dokans_and_doors(EvtEntry * entry, bool isFirstCall)
+{
+    (void) isFirstCall;
+
+    // Get dungeon number
+    int no = spm::evtmgr_cmd::evtGetValue(entry, entry->pCurData[0]);
+    
+    // Update destination of exit door
+    spm::dan::danChestRoomMapDoorDescs[1].destMapName = spm::seq_title::getNextDanMapname(no + 1);
+
+    // Set the entering door name
+    wii::string::strcpy(spm::spmario::gp->doorName, "doa1_l");
+    
+    // Set exit pipe destination
+    if (no < 100)
+    {
+        // Flipside pit
+        spm::dan::danChestRoomDokanDesc.destMapName = "mac_05";
+        spm::dan::danChestRoomDokanDesc.unknown_0x1c = "dokan_1";
+    }
+    else
+    {
+        // Flopside pit
+        spm::dan::danChestRoomDokanDesc.destMapName = "mac_15";
+        spm::dan::danChestRoomDokanDesc.unknown_0x1c = "dokan_1";
+    }
+
+    return EVT_RET_CONTINUE;
+}
+
+int ip_evt_dan_get_chest_room_item(EvtEntry * entry, bool isFirstCall)
+{
+    (void) isFirstCall;
+
+    // Get dungeon number
+    EvtScriptCode * args = entry->pCurData;
+    int no = spm::evtmgr_cmd::evtGetValue(entry, args[0]);
+    
+    // Return the item in this room's chest
+    spm::evtmgr_cmd::evtSetValue(entry, args[1], danWp->dungeons[no - 1].item);
+
+    return EVT_RET_CONTINUE;
+}
+
+int ip_evt_dan_boss_room_set_door_name(EvtEntry * entry, bool isFirstCall)
+{
+    (void) entry;
+    (void) isFirstCall;
+
+    // Set the entering door name
+    wii::string::strcpy(spm::spmario::gp->doorName, "doa1_l");
+
+    return EVT_RET_CONTINUE;
+}
+
+// func_80c839cc, wracktailDispCb, evt_dan_set_wracktail_disp_cb, func_80c83c48,
+// screenBlinkDisp, evt_dan_screen_blink, func_80c83f6c not re-implemented
+
 static const char * danEnemyRoomMaps[] = {
     // Flipside
     "dan_01",
@@ -845,6 +1029,13 @@ void danPatch()
     writeBranch(spm::dan::evt_dan_get_enemy_spawn_pos, 0, ip_evt_dan_get_enemy_spawn_pos);
     writeBranch(spm::dan::evt_dan_decide_key_enemy, 0, ip_evt_dan_decide_key_enemy);
     writeBranch(spm::dan::danCountdownDone, 0, ip_danCountdownDone);
+    writeBranch(spm::dan::evt_dan_start_countdown, 0, ip_evt_dan_start_countdown);
+    writeBranch(spm::dan::danCheckKeyInMapBbox, 0, ip_danCheckKeyInMapBbox);
+    writeBranch(spm::dan::danCheckKeyEnemyInMapBbox, 0, ip_danCheckKeyEnemyInMapBbox);
+    writeBranch(spm::dan::evt_dan_handle_key_failsafe, 0, ip_evt_dan_handle_key_failsafe);
+    writeBranch(spm::dan::evt_dan_handle_chest_room_dokans_and_doors, 0, ip_evt_dan_handle_chest_room_dokans_and_doors);
+    writeBranch(spm::dan::evt_dan_get_chest_room_item, 0, ip_evt_dan_get_chest_room_item);
+    writeBranch(spm::dan::evt_dan_boss_room_set_door_name, 0, ip_evt_dan_boss_room_set_door_name);
 
 #ifdef ONE_TIME_TXT_LOAD
     sDecompPitTextSize = spm::lzss10::lzss10GetDecompSize(pitText);
