@@ -6,6 +6,7 @@
 #include "ip_assets.h"
 #include "ip_badges.h"
 #include "ip_badgemenu.h"
+#include "ip_badgepouch.h"
 
 #include <types.h>
 #include <spm/gxsub.h>
@@ -67,60 +68,6 @@ static struct
     bool equippedOnly; // whether unequipped badges are displayed
 } work;
 
-/*
-    Temporary stubs
-*/
-PouchBadgeInfo badgePouch[] =
-{
-    {BADGEID_TEST_1, true},
-    {BADGEID_TEST_2, false},
-    {BADGEID_TEST_3, false},
-    {BADGEID_TEST_1, true},
-    {BADGEID_TEST_2, false},
-    {BADGEID_TEST_3, false},
-    {BADGEID_TEST_1, true},
-    {BADGEID_TEST_2, true},
-    {BADGEID_TEST_3, false},
-    {BADGEID_TEST_1, true},
-    {BADGEID_TEST_2, false},
-    {BADGEID_TEST_3, false},
-    {BADGEID_NONE, false},
-    {BADGEID_NONE, false},
-    {BADGEID_NONE, false},
-    {BADGEID_NONE, false},
-};
-PouchBadgeInfo * getBadgeInfoForSlot(s32 slot)
-{
-    return &badgePouch[slot];
-}
-BadgeDef * getBadgeDefForSlot(s32 slot)
-{
-    return badgeDefs + badgePouch[slot].id;
-}
-s32 countBadges()
-{
-    u32 i;
-    for (i = 0; i < ARRAY_SIZEOF(badgePouch); i++)
-    {
-        if (getBadgeInfoForSlot(i)->id == BADGEID_NONE)
-            break;
-    }
-    return i;
-}
-s32 countEquippedBadges()
-{
-    s32 n = 0;
-    for (u32 i = 0; i < ARRAY_SIZEOF(badgePouch); i++)
-    {
-        if (getBadgeInfoForSlot(i)->id == BADGEID_NONE)
-            break;
-        if (getBadgeInfoForSlot(i)->equipped)
-            n++;
-    }
-    return n;
-}
-/**/
-
 // TODO: SFX, btnRpt
 
 enum BadgeSubmenuIdx
@@ -160,7 +107,7 @@ static s32 menuIdxToBadgeSlot(s32 idx)
         s32 i;
         for (i = 0; true; i++)
         {
-            if (getBadgeInfoForSlot(i)->equipped)
+            if (pouchGetBadgeInfo(i)->equipped)
             {
                 if (--idx < 0)
                     break;
@@ -216,9 +163,9 @@ static void initPage(s32 page, bool equippedOnly, s32 option)
 
     // Get count
     if (equippedOnly)
-        work.badgeCount = countEquippedBadges();
+        work.badgeCount = pouchCountEquippedBadges();
     else
-        work.badgeCount = countBadges();
+        work.badgeCount = pouchCountBadges();
 
     // Calculate number of pages (badge count divided by page size, rounded up)
     work.pageCount = (work.badgeCount + BADGE_PAGE_SIZE - 1) / BADGE_PAGE_SIZE;
@@ -265,7 +212,7 @@ static void moveToBadge()
     pluswinWp->cursorMoveDest.y = lineY - 20.0f;
 
     // Update help message
-    setHelpMessage(getBadgeDefForSlot(getSelectedBadgeSlot())->descMsg);
+    setHelpMessage(pouchGetBadgeDef(getSelectedBadgeSlot())->descMsg);
 }
 
 /*
@@ -316,7 +263,7 @@ static void updateOnAll(u32 btn)
         initPage(0, true, 0);
         selectButton(BADGE_BTN_EQUIPPED);
     }
-    else if ((btn & (WPAD_BTN_DOWN | WPAD_BTN_2)) && countBadges() > 0)
+    else if ((btn & (WPAD_BTN_DOWN | WPAD_BTN_2)) && pouchCountBadges() > 0)
     {
         // Move right to badge list
         moveToBadge();
@@ -339,7 +286,7 @@ static void updateOnEquipped(u32 btn)
         initPage(0, false, 0);
         selectButton(BADGE_BTN_ALL);
     }
-    else if ((btn & (WPAD_BTN_DOWN | WPAD_BTN_2)) && countEquippedBadges() > 0)
+    else if ((btn & (WPAD_BTN_DOWN | WPAD_BTN_2)) && pouchCountEquippedBadges() > 0)
     {
         // Move right to badge list
         moveToBadge();
@@ -361,7 +308,7 @@ static void updateOnBadges(u32 btn)
     }
     else if (btn & WPAD_BTN_2)
     {
-        PouchBadgeInfo * info = getBadgeInfoForSlot(getSelectedBadgeSlot());
+        PouchBadgeInfo * info = pouchGetBadgeInfo(getSelectedBadgeSlot());
 
         // Equip/Dequip badge
         info->equipped = !info->equipped;
@@ -479,8 +426,8 @@ static void menuDisp(PausewinEntry * entry)
     for (s32 i = work.pageStart; i < work.pageStart + work.pageBadgeCount; i++)
     {
         s32 slot = menuIdxToBadgeSlot(i);
-        BadgeDef * def = getBadgeDefForSlot(slot);
-        PouchBadgeInfo * info = getBadgeInfoForSlot(slot);
+        BadgeDef * def = pouchGetBadgeDef(slot);
+        PouchBadgeInfo * info = pouchGetBadgeInfo(slot);
         
         mod::Window::drawTexture(&badgeIconTpl, def->iconId, -105.0f, y, 0.7f, &colours::white);
 

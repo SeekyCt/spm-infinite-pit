@@ -1,6 +1,7 @@
 #include "consolewindow.h"
 #include "evt_cmd.h"
 #include "patch.h"
+#include "ip_badgepouch.h"
 #include "util.h"
 
 #include <types.h>
@@ -98,6 +99,8 @@ static void initNewSave()
 
     // Give the player Boomer to ensure all enemies can be defeated
     spm::mario_pouch::pouchAddItem(222);
+    
+    badgePouchInit();
 }
 
 /*

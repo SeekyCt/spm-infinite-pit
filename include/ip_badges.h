@@ -27,12 +27,6 @@ struct BadgeDef
     s8 bpCost;
 };
 
-struct PouchBadgeInfo
-{
-    BadgeId id;
-    bool equipped;
-};
-
 extern BadgeDef badgeDefs[NUM_BADGES];
 
 }

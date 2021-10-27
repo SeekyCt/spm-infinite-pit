@@ -1,5 +1,6 @@
 #include "ip.h"
 #include "ip_badgemenu.h"
+#include "ip_badgepouch.h"
 #include "ip_dan.h"
 #include "ip_messages.h"
 #include "ip_pausetex.h"
@@ -25,6 +26,7 @@ void main()
 {
     wii::OSError::OSReport(IP_VERSION ": main running\n");
 
+    badgePouchPatch();
     badgeMenuPatch();
     danPatch();
     messagePatch();
